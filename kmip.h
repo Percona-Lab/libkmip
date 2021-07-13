@@ -725,6 +725,7 @@ enum tag
     KMIP_TAG_MACHINE_IDENTIFIER               = 0x4200A9,
     KMIP_TAG_MEDIA_IDENTIFIER                 = 0x4200AA,
     KMIP_TAG_NETWORK_IDENTIFIER               = 0x4200AB,
+    KMIP_TAG_OBJECT_GROUP_MEMBER              = 0x4200AC,
     KMIP_TAG_DIGITAL_SIGNATURE_ALGORITHM      = 0x4200AE,
     KMIP_TAG_DEVICE_SERIAL_NUMBER             = 0x4200B0,
     /* KMIP 1.2 */
@@ -742,6 +743,8 @@ enum tag
     KMIP_TAG_INITIAL_COUNTER_VALUE            = 0x4200D1,
     KMIP_TAG_INVOCATION_FIELD_LENGTH          = 0x4200D2,
     KMIP_TAG_ATTESTATION_CAPABLE_INDICATOR    = 0x4200D3,
+    KMIP_TAG_OFFSET_ITEMS                     = 0x4200D4,
+    KMIP_TAG_LOCATED_ITEMS                    = 0x4200D5,
     /* KMIP 1.4 */
     KMIP_TAG_KEY_WRAP_TYPE                    = 0x4200F8,
     KMIP_TAG_SALT_LENGTH                      = 0x420100,

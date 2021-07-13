@@ -151,8 +151,8 @@ use_low_level_api(const char *server_address,
     kmip_set_buffer(&kmip_context, encoding, buffer_total_size);
     
     /* Build the request message. */
-    Attribute a[3] = {0};
-    for(int i = 0; i < 3; i++)
+    Attribute a[4] = {0};
+    for(int i = 0; i < 4; i++)
         kmip_init_attribute(&a[i]);
     
     enum cryptographic_algorithm algorithm = KMIP_CRYPTOALG_AES;
@@ -162,10 +162,19 @@ use_low_level_api(const char *server_address,
     int32 length = 256;
     a[1].type = KMIP_ATTR_CRYPTOGRAPHIC_LENGTH;
     a[1].value = &length;
-    
+
     int32 mask = KMIP_CRYPTOMASK_ENCRYPT | KMIP_CRYPTOMASK_DECRYPT;
     a[2].type = KMIP_ATTR_CRYPTOGRAPHIC_USAGE_MASK;
     a[2].value = &mask;
+
+    Name ts = {0, 0};
+    TextString ts2 = {0,0};
+    ts2.value = "TestName";
+    ts2.size = kmip_strnlen_s(ts2.value, 50);
+    ts.value = &ts2;
+    ts.type = KMIP_NAME_UNINTERPRETED_TEXT_STRING;
+    a[3].type = KMIP_ATTR_NAME;
+    a[3].value = &ts;
     
     TemplateAttribute ta = {0};
     ta.attributes = a;

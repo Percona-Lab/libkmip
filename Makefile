@@ -29,8 +29,8 @@ DESTDIR =
 PREFIX  = /usr/local
 KMIP    = kmip
 
-OFILES  = kmip.o kmip_memset.o kmip_bio.o
-LOFILES = kmip.lo kmip_memset.lo kmip_bio.lo
+OFILES  = kmip.o kmip_memset.o kmip_bio.o kmip_locate.o
+LOFILES = kmip.lo kmip_memset.lo kmip_bio.lo kmip_locate.lo
 DEMOS   = demo_create demo_get demo_destroy demo_query
 
 all: demos tests $(LIBS)
@@ -47,6 +47,7 @@ install: all
 	cp demo_create $(DESTDIR)$(PREFIX)/bin/$(KMIP)
 	cp demo_get $(DESTDIR)$(PREFIX)/bin/$(KMIP)
 	cp demo_destroy $(DESTDIR)$(PREFIX)/bin/$(KMIP)
+	cp demo_locate $(DESTDIR)$(PREFIX)/bin/$(KMIP)
 	cp tests $(DESTDIR)$(PREFIX)/bin/$(KMIP)
 	cp -r $(SRCDIR)/docs/source/. $(DESTDIR)$(PREFIX)/share/doc/$(KMIP)/src
 	cp $(SRCDIR)/*.c $(DESTDIR)$(PREFIX)/src/$(KMIP)
@@ -80,28 +81,34 @@ demo_create: demo_create.o $(OFILES)
 	$(CC) $(LDFLAGS) -o demo_create $^ $(LDLIBS)
 demo_destroy: demo_destroy.o $(OFILES)
 	$(CC) $(LDFLAGS) -o demo_destroy $^ $(LDLIBS)
+demo_locate: demo_locate.o $(OFILES)
+	$(CC) $(LDFLAGS) -o demo_locate $^ $(LDLIBS)
 demo_query: demo_query.o $(OFILES)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
-tests: tests.o kmip.o kmip_memset.o
+tests: tests.o kmip.o kmip_memset.o kmip_locate.o
 	$(CC) $(LDFLAGS) -o tests $^
 
-demo_get.o: demo_get.c kmip_memset.h kmip.h
-demo_create.o: demo_create.c kmip_memset.h kmip.h
-demo_destroy.o: demo_destroy.c kmip_memset.h kmip.h
-tests.o: tests.c kmip_memset.h kmip.h
+demo_get.o: demo_get.c kmip_memset.h kmip.h kmip_locate.h
+demo_create.o: demo_create.c kmip_memset.h kmip.h kmip_locate.h
+demo_destroy.o: demo_destroy.c kmip_memset.h kmip.h kmip_locate.h
+demo_locate.o: demo_locate.c kmip_memset.h kmip.h kmip_locate.h
+tests.o: tests.c kmip_memset.h kmip.h kmip_locate.h
 $(LIBNAME): $(LOFILES)
 	$(CC) $(CFLAGS) $(SOFLAGS) -o $@ $(LOFILES)
 $(ARCNAME): $(OFILES)
 	$(AR) $@ $(OFILES)
 
-kmip.o: kmip.c kmip.h kmip_memset.h
-kmip.lo: kmip.c kmip.h kmip_memset.h
+kmip.o: kmip.c kmip.h kmip_memset.h kmip_locate.h
+kmip.lo: kmip.c kmip.h kmip_memset.h kmip_locate.h
 
 kmip_memset.o: kmip_memset.c kmip_memset.h
 kmip_memset.lo: kmip_memset.c kmip_memset.h
 
 kmip_bio.o: kmip_bio.c kmip_bio.h
 kmip_bio.lo: kmip_bio.c kmip_bio.h
+
+kmip_locate.o: kmip_locate.c kmip_locate.h kmip.h kmip_memset.h  kmip_bio.h
+kmip_locate.lo: kmip_locate.c kmip_locate.h kmip.h kmip_memset.h  kmip_bio.h
 
 clean:
 	rm -f *.o *.lo
