@@ -31,7 +31,7 @@ KMIP    = kmip
 
 OFILES  = kmip.o kmip_memset.o kmip_bio.o kmip_locate.o
 LOFILES = kmip.lo kmip_memset.lo kmip_bio.lo kmip_locate.lo
-DEMOS   = demo_create demo_get demo_destroy demo_query
+DEMOS   = demo_create demo_register demo_locate demo_get demo_destroy demo_query
 
 all: demos tests $(LIBS)
 
@@ -45,6 +45,7 @@ install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/src/$(KMIP)
 	mkdir -p $(DESTDIR)$(PREFIX)/share/doc/$(KMIP)/src
 	cp demo_create $(DESTDIR)$(PREFIX)/bin/$(KMIP)
+	cp demo_register $(DESTDIR)$(PREFIX)/bin/$(KMIP)
 	cp demo_get $(DESTDIR)$(PREFIX)/bin/$(KMIP)
 	cp demo_destroy $(DESTDIR)$(PREFIX)/bin/$(KMIP)
 	cp demo_locate $(DESTDIR)$(PREFIX)/bin/$(KMIP)
@@ -79,6 +80,8 @@ demo_get: demo_get.o $(OFILES)
 	$(CC) $(LDFLAGS) -o demo_get $^ $(LDLIBS)
 demo_create: demo_create.o $(OFILES)
 	$(CC) $(LDFLAGS) -o demo_create $^ $(LDLIBS)
+demo_register: demo_register.o $(OFILES)
+	$(CC) $(LDFLAGS) -o demo_register $^ $(LDLIBS)
 demo_destroy: demo_destroy.o $(OFILES)
 	$(CC) $(LDFLAGS) -o demo_destroy $^ $(LDLIBS)
 demo_locate: demo_locate.o $(OFILES)
@@ -90,6 +93,7 @@ tests: tests.o kmip.o kmip_memset.o kmip_locate.o
 
 demo_get.o: demo_get.c kmip_memset.h kmip.h kmip_locate.h
 demo_create.o: demo_create.c kmip_memset.h kmip.h kmip_locate.h
+demo_register.o:demo_register.c kmip_memset.h kmip.h kmip_locate.h
 demo_destroy.o: demo_destroy.c kmip_memset.h kmip.h kmip_locate.h
 demo_locate.o: demo_locate.c kmip_memset.h kmip.h kmip_locate.h
 tests.o: tests.c kmip_memset.h kmip.h kmip_locate.h

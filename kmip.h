@@ -11,6 +11,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <assert.h>
 
 /*
 Types and Constants
@@ -1032,6 +1033,25 @@ typedef struct create_request_payload
     ProtectionStorageMasks *protection_storage_masks;
 } CreateRequestPayload;
 
+typedef struct register_request_payload
+{
+    /* KMIP 1.0 */
+    enum object_type object_type; // both
+    TemplateAttribute *template_attribute;
+    /* KMIP 2.0 */
+    Attributes *attributes;
+    ProtectionStorageMasks *protection_storage_masks;
+    // TODO: data could be many things. But we only care about symmetric keys
+    SymmetricKey object; // both 1.0 and 2.0
+} RegisterRequestPayload;
+
+typedef struct register_response_payload
+{
+    /* KMIP 1.0 */
+    TextString *unique_identifier;
+    TemplateAttribute *template_attribute;
+} RegisterResponsePayload;
+
 typedef struct create_response_payload
 {
     /* KMIP 1.0 */
@@ -1291,6 +1311,7 @@ do                                                      \
 {                                                       \
     if(BUFFER_BYTES_LEFT(A) < (B))                      \
     {                                                   \
+        assert(0); \
         kmip_push_error_frame((A), __func__, __LINE__); \
         return((C));                                    \
     }                                                   \
