@@ -9,4 +9,5 @@ project(kmip C CXX)
 set(KMIP_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_subdirectory(libkmip/src)
+add_subdirectory(kmippp)
 

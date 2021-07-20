@@ -1078,6 +1078,20 @@ typedef struct get_response_payload
     void *object;
 } GetResponsePayload;
 
+typedef struct get_attribute_request_payload
+{
+    /* KMIP 1.0 */
+    TextString *unique_identifier;
+    TextString *attribute_name;
+} GetAttributeRequestPayload;
+
+typedef struct get_attribute_response_payload
+{
+    TextString *unique_identifier;
+    Attribute *attribute;
+    void *object;
+} GetAttributeResponsePayload;
+
 typedef struct destroy_request_payload
 {
     TextString *unique_identifier;

@@ -23,7 +23,7 @@ set_target_properties(
   )
 
 
-export(TARGETS kmip FILE "coredumper.cmake")
+export(TARGETS kmip FILE "kmip.cmake")
 install(
   TARGETS kmip
   EXPORT kmip
