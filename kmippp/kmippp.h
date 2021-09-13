@@ -1,23 +1,15 @@
 
 
-//struct SSL_CTX; // SSL
-//struct SSL; // SSL
-//struct BIO; // SSL
-//struct KMIP; // KMIP
-
-#include <openssl/err.h>
-#include <openssl/ssl.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-extern "C" {
-#include "kmip.h"
-}
 
 #include <memory>
 #include <cstdint>
 #include <vector>
 #include <string>
+
+extern "C" {
+typedef struct ssl_ctx_st SSL_CTX;
+typedef struct bio_st BIO;
+}
 
 namespace kmippp {
   
@@ -63,7 +55,6 @@ namespace kmippp {
     private:
       SSL_CTX *ctx_ = nullptr;
       BIO* bio_;
-      KMIP kmip_context;
       uint8_t* encoding;
   };
 

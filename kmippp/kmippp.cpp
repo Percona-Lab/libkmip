@@ -1,12 +1,17 @@
 
 #include "kmippp.h"
 
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
 #include <stdexcept>
 
-extern "C" {
+#include "kmip.h"
 #include "kmip_bio.h"
 #include "kmip_locate.h"
-}
 
 namespace kmippp {
 

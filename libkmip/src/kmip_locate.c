@@ -99,7 +99,6 @@ void kmip_print_locate_request_payload(FILE* f, int indent, LocateRequestPayload
 
 void kmip_free_locate_request_payload(KMIP* ctx, LocateRequestPayload *value)
 {
-    //printf("** free request payload\n");
     if (value->attribute_list)
     {
         kmip_free_attribute_list(ctx, value->attribute_list);
@@ -155,10 +154,18 @@ kmip_encode_locate_request_payload(KMIP* ctx, const LocateRequestPayload* value)
         {
             // copy input list to allow freeing
             LinkedList *list = ctx->calloc_func(ctx->state, 1, sizeof(LinkedList));
+            if (list == NULL) 
+            {
+                return (KMIP_MEMORY_ALLOC_FAILED);
+            }
             LinkedListItem *curr = value->attribute_list->head;
             while(curr != NULL)
             {
                 LinkedListItem *item = ctx->calloc_func(ctx->state, 1, sizeof(LinkedListItem));
+                if (item == NULL) 
+                {
+                    return (KMIP_MEMORY_ALLOC_FAILED);
+                }
                 item->data = kmip_deep_copy_attribute(ctx, curr->data);
                 kmip_linked_list_enqueue(list, item);
 
@@ -176,8 +183,7 @@ kmip_encode_locate_request_payload(KMIP* ctx, const LocateRequestPayload* value)
     else
     {
         // todo : copy attrib list into Attribute - see kmip.c
-
-
+        assert(0);
     }
 
     uint8 *curr_index = ctx->index;
@@ -250,6 +256,10 @@ int kmip_decode_locate_response_payload(KMIP* ctx, LocateResponsePayload *value)
     if(kmip_is_tag_next(ctx, KMIP_TAG_UNIQUE_IDENTIFIER))
     {
         value->unique_ids = ctx->calloc_func(ctx->state, 1, sizeof(UniqueIdentifiers));
+        if (value->unique_ids == NULL) 
+        {
+            return (KMIP_MEMORY_ALLOC_FAILED);
+        }
         CHECK_NEW_MEMORY(ctx, value->unique_ids, sizeof(UniqueIdentifiers), "Unique_Identifiers");
         result = kmip_decode_unique_identifiers(ctx, value->unique_ids);
         CHECK_RESULT(ctx, result);
@@ -302,7 +312,6 @@ kmip_copy_unique_ids(char ids[][MAX_LOCATE_LEN], size_t* id_size, UniqueIdentifi
 void
 kmip_free_unique_identifiers(KMIP *ctx, UniqueIdentifiers* value)
 {
-    //printf("** free uniq ids \n");
     if(value != NULL)
     {
         if(value->unique_identifier_list != NULL)
@@ -328,8 +337,6 @@ kmip_free_unique_identifiers(KMIP *ctx, UniqueIdentifiers* value)
 int kmip_decode_unique_identifiers(KMIP* ctx, UniqueIdentifiers* value)
 {
     int result = 0;
-
-    //printf("** decode uniq ids \n");
 
     value->unique_identifier_list = ctx->calloc_func(ctx->state, 1, sizeof(LinkedList));
     CHECK_NEW_MEMORY(ctx, value->unique_identifier_list, sizeof(LinkedList), "LinkedList");

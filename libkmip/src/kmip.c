@@ -5818,8 +5818,6 @@ kmip_free_register_request_payload(KMIP *ctx, RegisterRequestPayload *value)
             value->protection_storage_masks = NULL;
         }
 
-        // TODO:  the key itself!
-        
         value->object_type = 0;
     }
     
@@ -8334,7 +8332,7 @@ kmip_compare_register_request_payload(const RegisterRequestPayload *a, const Reg
             }
         }
 
-        // TODO: the key itself
+        return kmip_compare_symmetric_key(&a->object, &b->object);
     }
     
     return(KMIP_TRUE);
@@ -11425,7 +11423,7 @@ kmip_encode_register_request_payload(KMIP *ctx, const RegisterRequestPayload *va
         }
     }
 
-    // TODO TODO TODO: the data itself! could be something else too!
+    // TODO: this currently onlyhandles symmetric keys, but in theory the protocol also supports other types
     result = kmip_encode_symmetric_key(ctx, &value->object);
     CHECK_RESULT(ctx, result);
     
@@ -14174,7 +14172,18 @@ kmip_decode_register_request_payload(KMIP *ctx, RegisterRequestPayload *value)
         }
     }
 
-    // the key itself
+    result = kmip_decode_symmetric_key(ctx, &value->object);
+    if (result != KMIP_OK) 
+    {
+        kmip_free_attributes(ctx, value->attributes);
+        kmip_free_protection_storage_masks(ctx, value->protection_storage_masks);
+        ctx->free_func(ctx, value->attributes);
+        ctx->free_func(ctx, value->protection_storage_masks);
+        value->attributes = NULL;
+        value->protection_storage_masks = NULL;
+
+        HANDLE_FAILURE(ctx, result);
+    }
     //value->object = ctx->calloc_func(ctx->state, 1, sizeof(SymmetricKey));
     //CHECK_NEW_MEMORY(ctx, value->object, sizeof(SymmetricKey), "SymmetricKey structure");
     result = kmip_decode_symmetric_key(ctx, &value->object);

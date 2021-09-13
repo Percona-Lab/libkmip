@@ -13,6 +13,10 @@
 #include <stdint.h>
 #include <assert.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
 Types and Constants
 */
@@ -1325,7 +1329,6 @@ do                                                      \
 {                                                       \
     if(BUFFER_BYTES_LEFT(A) < (B))                      \
     {                                                   \
-        assert(0); \
         kmip_push_error_frame((A), __func__, __LINE__); \
         return((C));                                    \
     }                                                   \
@@ -1847,5 +1850,8 @@ int kmip_decode_query_request_payload(KMIP *, QueryRequestPayload *);
 int kmip_decode_query_response_payload(KMIP *, QueryResponsePayload *);
 int kmip_decode_server_information(KMIP *ctx, ServerInformation *);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* KMIP_H */

@@ -27,10 +27,10 @@ export(TARGETS kmip FILE "kmip.cmake")
 install(
   TARGETS kmip
   EXPORT kmip
+  DESTINATION cmake
   ARCHIVE DESTINATION lib
   PUBLIC_HEADER DESTINATION include/
   LIBRARY DESTINATION lib)
-install(EXPORT kmip DESTINATION cmake)
 
 macro(add_demo name)
   add_executable(demo_${name} demo_${name}.c)

@@ -237,6 +237,15 @@ int kmip_bio_create_symmetric_key(BIO *bio,
         ctx.state,
         1,
         unique_identifier->size + 1);
+    if(result_id == NULL)
+    {
+        kmip_free_response_message(&ctx, &resp_m);
+        kmip_free_buffer(&ctx, encoding, buffer_total_size);
+        encoding = NULL;
+        kmip_set_buffer(&ctx, NULL, 0);
+        kmip_destroy(&ctx);
+        return(KMIP_MEMORY_ALLOC_FAILED);
+    }
     *id_size = unique_identifier->size;
     for(int i = 0; i < *id_size; i++)
         result_id[i] = unique_identifier->value[i];
@@ -472,6 +481,15 @@ int kmip_bio_register_symmetric_key(BIO *bio,
         ctx.state,
         1,
         unique_identifier->size + 1);
+    if(result_id == NULL)
+    {
+        kmip_free_response_message(&ctx, &resp_m);
+        kmip_free_buffer(&ctx, encoding, buffer_total_size);
+        encoding = NULL;
+        kmip_set_buffer(&ctx, NULL, 0);
+        kmip_destroy(&ctx);
+        return(KMIP_MEMORY_ALLOC_FAILED);
+    }
     *id_size = unique_identifier->size;
     for(int i = 0; i < *id_size; i++)
         result_id[i] = unique_identifier->value[i];
@@ -911,6 +929,15 @@ int kmip_bio_get_symmetric_key(BIO *bio,
     ByteString *material = (ByteString *)block_value->key_material;
     
     char *result_key = ctx.calloc_func(ctx.state, 1, material->size);
+    if(result_key == NULL)
+    {
+        kmip_free_response_message(&ctx, &resp_m);
+        kmip_free_buffer(&ctx, encoding, buffer_total_size);
+        encoding = NULL;
+        kmip_set_buffer(&ctx, NULL, 0);
+        kmip_destroy(&ctx);
+        return(KMIP_MEMORY_ALLOC_FAILED);
+    }
     *key_size = material->size;
     for(int i = 0; i < *key_size; i++)
     {
@@ -1163,7 +1190,6 @@ int kmip_bio_create_symmetric_key_with_context(KMIP *ctx, BIO *bio,
         kmip_free_buffer(ctx, encoding, buffer_total_size);
         encoding = NULL;
         kmip_set_buffer(ctx, NULL, 0);
-        kmip_destroy(ctx);
         return(result);
     }
     
@@ -1175,6 +1201,14 @@ int kmip_bio_create_symmetric_key_with_context(KMIP *ctx, BIO *bio,
             TextString *unique_identifier = pld->unique_identifier;
 
             char *result_id = ctx->calloc_func(ctx->state, 1, unique_identifier->size);
+            if (result_id == NULL)
+            {
+                kmip_free_response_message(ctx, &resp_m);
+                kmip_free_buffer(ctx, encoding, buffer_total_size);
+                encoding = NULL;
+                kmip_set_buffer(ctx, NULL, 0);
+                return (KMIP_MEMORY_ALLOC_FAILED);
+            }
             *id_size = unique_identifier->size;
             for(int i = 0; i < *id_size; i++)
             {
@@ -1419,6 +1453,14 @@ int kmip_bio_get_symmetric_key_with_context(KMIP *ctx, BIO *bio,
     ByteString *material = (ByteString *)block_value->key_material;
     
     char *result_key = ctx->calloc_func(ctx->state, 1, material->size);
+    if (result_key == NULL) 
+    {
+        kmip_free_response_message(ctx, &resp_m);
+        kmip_free_buffer(ctx, encoding, buffer_total_size);
+        encoding = NULL;
+        kmip_set_buffer(ctx, NULL, 0);
+        return (KMIP_MEMORY_ALLOC_FAILED);
+    }
     *key_size = material->size;
     for(int i = 0; i < *key_size; i++)
     {
@@ -1656,7 +1698,6 @@ int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t
     uint8 *encoding = ctx->calloc_func(ctx->state, buffer_blocks, buffer_block_size);
     if(encoding == NULL)
     {
-        kmip_destroy(ctx);
         return(KMIP_MEMORY_ALLOC_FAILED);
     }
     kmip_set_buffer(ctx, encoding, buffer_total_size);
@@ -1678,10 +1719,22 @@ int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t
 
     // copy input array to list
     LinkedList *attribute_list = ctx->calloc_func(ctx->state, 1, sizeof(LinkedList));
+    if(attribute_list == NULL)
+    {
+        return(KMIP_MEMORY_ALLOC_FAILED);
+    }
     for(size_t i = 0; i < attrib_count; i++)
     {
         LinkedListItem *item = ctx->calloc_func(ctx->state, 1, sizeof(LinkedListItem));
+        if (item == NULL)
+        {
+            return (KMIP_MEMORY_ALLOC_FAILED);
+        }
         item->data = kmip_deep_copy_attribute(ctx, &attribs[i]);
+        if(item->data == NULL)
+        {
+            return(KMIP_MEMORY_ALLOC_FAILED);
+        }
         kmip_linked_list_enqueue(attribute_list, item);
     }
 
@@ -1717,7 +1770,6 @@ int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t
         encoding = ctx->calloc_func(ctx->state, buffer_blocks, buffer_block_size);
         if(encoding == NULL)
         {
-            kmip_destroy(ctx);
             return(KMIP_MEMORY_ALLOC_FAILED);
         }
 
@@ -1730,7 +1782,6 @@ int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t
         kmip_free_buffer(ctx, encoding, buffer_total_size);
         encoding = NULL;
         kmip_set_buffer(ctx, NULL, 0);
-        kmip_destroy(ctx);
         return(encode_result);
     }
 
@@ -1745,7 +1796,6 @@ int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t
         encoding = NULL;
         response = NULL;
         kmip_set_buffer(ctx, NULL, 0);
-        kmip_destroy(ctx);
         return(result);
     }
 
@@ -1775,7 +1825,6 @@ int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t
         kmip_free_buffer(ctx, response, response_size);
         response = NULL;
         kmip_set_buffer(ctx, NULL, 0);
-        kmip_destroy(ctx);
         return(decode_result);
     }
 
@@ -1785,7 +1834,6 @@ int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t
         kmip_free_buffer(ctx, response, response_size);
         response = NULL;
         kmip_set_buffer(ctx, NULL, 0);
-        kmip_destroy(ctx);
         return(KMIP_MALFORMED_RESPONSE);
     }
 
@@ -1922,9 +1970,17 @@ int kmip_bio_query_with_context(KMIP *ctx, BIO *bio, enum query_function queries
     rh.batch_count = 1;
 
     LinkedList *funclist = ctx->calloc_func(ctx->state, 1, sizeof(LinkedList));
+    if(funclist == NULL)
+    {
+        return(KMIP_MEMORY_ALLOC_FAILED);
+    }
     for(size_t i = 0; i < query_count; i++)
     {
         LinkedListItem *item = ctx->calloc_func(ctx->state, 1, sizeof(LinkedListItem));
+        if (item == NULL)
+        {
+            return (KMIP_MEMORY_ALLOC_FAILED);
+        }
         item->data = &queries[i];
         kmip_linked_list_enqueue(funclist, item);
     }
@@ -2253,6 +2309,13 @@ int kmip_bio_get_name_attribute(BIO *bio,
     Name* ns = (Name*)pld->attribute->value;
     TextString* ts = (TextString*)ns->value;
     *name = ctx.calloc_func(ctx.state, 1, ts->size+1);
+    if(name == NULL)
+    {
+        kmip_free_response_message(&ctx, &resp_m);
+        kmip_set_buffer(&ctx, NULL, 0);
+        kmip_destroy(&ctx);
+        return(KMIP_MEMORY_ALLOC_FAILED);
+    }
     *name_len = ts->size;
     for(int i = 0; i < *name_len; i++)
     {

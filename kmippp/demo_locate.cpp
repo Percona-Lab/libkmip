@@ -1,7 +1,7 @@
 
 
 #include <iostream>
-#include "kmippp.cpp"
+#include "kmippp.h"
 
 int main(int argc, char** argv) {
 
