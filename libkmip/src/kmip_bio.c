@@ -21,7 +21,7 @@
 OpenSSH BIO API
 */
 
-int kmip_bio_locate(BIO *bio, Attribute* attribs, size_t attrib_count, LocateResponse* locate_result)
+int kmip_bio_locate(BIO *bio, Attribute* attribs, size_t attrib_count, LocateResponse* locate_result, int max_items, int offset)
 {
     if(bio == NULL)
         return(KMIP_ARG_INVALID);
@@ -30,7 +30,7 @@ int kmip_bio_locate(BIO *bio, Attribute* attribs, size_t attrib_count, LocateRes
     KMIP ctx = {0};
     kmip_init(&ctx, NULL, 0, KMIP_1_0);
     
-    int result = kmip_bio_locate_with_context(&ctx, bio, attribs, attrib_count, locate_result);
+    int result = kmip_bio_locate_with_context(&ctx, bio, attribs, attrib_count, locate_result, max_items, offset);
 
     kmip_set_buffer(&ctx, NULL, 0);
     kmip_destroy(&ctx);
@@ -443,7 +443,7 @@ int kmip_bio_register_symmetric_key(BIO *bio,
     if(decode_result != KMIP_OK)
     {
         kmip_free_response_message(&ctx, &resp_m);
-        kmip_free_buffer(&ctx, encoding, buffer_total_size);
+        //kmip_free_buffer(&ctx, encoding, buffer_total_size);
         encoding = NULL;
         kmip_destroy(&ctx);
         return(decode_result);
@@ -677,6 +677,28 @@ int kmip_bio_destroy_symmetric_key(BIO *bio, char *uuid, int uuid_size)
     /* Decode the response message and retrieve the operation result status. */
     ResponseMessage resp_m = {0};
     int decode_result = kmip_decode_response_message(&ctx, &resp_m);
+    while(decode_result == KMIP_ERROR_BUFFER_FULL)
+    {
+        kmip_reset(&ctx);
+        ctx.free_func(ctx.state, encoding);
+        
+        buffer_blocks += 1;
+        buffer_total_size = buffer_blocks * buffer_block_size;
+        
+        encoding = ctx.calloc_func(ctx.state, buffer_blocks,
+                                   buffer_block_size);
+        if(encoding == NULL)
+        {
+            kmip_destroy(&ctx);
+            return(KMIP_MEMORY_ALLOC_FAILED);
+        }
+        
+        kmip_set_buffer(
+            &ctx,
+            encoding,
+            buffer_total_size);
+        decode_result = kmip_decode_response_message(&ctx, &resp_m);
+    }
     if(decode_result != KMIP_OK)
     {
         kmip_free_response_message(&ctx, &resp_m);
@@ -1332,7 +1354,6 @@ int kmip_bio_get_symmetric_key_with_context(KMIP *ctx, BIO *bio,
     if(sent != ctx->index - ctx->buffer)
     {
         kmip_free_buffer(ctx, encoding, buffer_total_size);
-        encoding = NULL;
         return(KMIP_IO_FAILURE);
     }
     
@@ -1395,7 +1416,7 @@ int kmip_bio_get_symmetric_key_with_context(KMIP *ctx, BIO *bio,
         return(KMIP_IO_FAILURE);
     }
     
-    kmip_set_buffer(ctx, encoding, buffer_block_size);
+    kmip_set_buffer(ctx, encoding, buffer_total_size);
     
     /* Decode the response message and retrieve the operation result status. */
     ResponseMessage resp_m = {0};
@@ -1684,7 +1705,7 @@ int kmip_bio_destroy_symmetric_key_with_context(KMIP *ctx, BIO *bio,
 
 
 
-int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t attrib_count, LocateResponse* locate_result)
+int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t attrib_count, LocateResponse* locate_result, int max_items, int offset)
 {
     if (ctx == NULL || bio == NULL || attribs == NULL || attrib_count == 0 || locate_result == NULL)
     {
@@ -1739,8 +1760,8 @@ int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t
     }
 
     LocateRequestPayload lrp = {0};
-    lrp.maximum_items = 12;
-    lrp.offset_items = 0;
+    lrp.maximum_items = max_items;
+    lrp.offset_items = offset;
     lrp.storage_status_mask = 0;
     lrp.group_member_option = 0;
     lrp.attribute_list = attribute_list;
@@ -1777,6 +1798,16 @@ int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t
         encode_result = kmip_encode_request_message(ctx, &rm);
     }
 
+    {
+      LinkedListItem* item = NULL;
+      while((item = kmip_linked_list_pop(attribute_list)) != NULL)
+      {
+        kmip_free_attribute(ctx, item->data);
+        free(item->data);
+        kmip_free_buffer(ctx, item, sizeof(LinkedListItem));
+      }
+    }
+
     if(encode_result != KMIP_OK)
     {
         kmip_free_buffer(ctx, encoding, buffer_total_size);
@@ -1801,16 +1832,6 @@ int kmip_bio_locate_with_context(KMIP *ctx, BIO *bio, Attribute* attribs, size_t
 
     kmip_free_locate_request_payload(ctx, &lrp);
 
-
-    if (response)
-    {
-        FILE* out = fopen( "/tmp/kmip_locate.dat", "w" );
-        if (out)
-        {
-            fwrite( response, response_size, 1, out );
-            fclose(out);
-        }
-    }
 
     kmip_free_buffer(ctx, encoding, buffer_total_size);
     encoding = NULL;
@@ -2044,17 +2065,6 @@ int kmip_bio_query_with_context(KMIP *ctx, BIO *bio, enum query_function queries
     }
 
     kmip_free_query_request_payload(ctx, &qrp);
-
-    if (response)
-    {
-        FILE* out = fopen( "/tmp/kmip_query.dat", "w" );
-        if (out)
-        {
-            fwrite( response, response_size, 1, out );
-            fclose(out);
-        }
-        // kmip_print_buffer(response, response_size);
-    }
 
     kmip_free_buffer(ctx, encoding, buffer_total_size);
     encoding = NULL;

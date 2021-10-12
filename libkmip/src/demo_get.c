@@ -215,7 +215,7 @@ use_mid_level_api(char *server_address,
     credential.credential_type = KMIP_CRED_USERNAME_AND_PASSWORD;
     credential.credential_value = &upc;
     
-    int result = kmip_add_credential(&kmip_context, &credential);
+    int result = KMIP_OK; //kmip_add_credential(&kmip_context, &credential);
     
     if(result != KMIP_OK)
     {

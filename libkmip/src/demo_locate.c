@@ -396,7 +396,7 @@ use_mid_level_api(BIO* bio,
     //kmip_context.realloc_func = &demo_realloc;
     //kmip_context.free_func = &demo_free;
 
-    kmip_init(&kmip_context, NULL, 0, KMIP_2_0);
+    kmip_init(&kmip_context, NULL, 0, KMIP_1_4);
     
 
 #define USE_DEVICE_CREDENTIALS
@@ -448,7 +448,7 @@ use_mid_level_api(BIO* bio,
 
     TextString s = { 0 };
     Name n = { 0 };
-    if (key_name)
+    if (0 && key_name)
     {
         s.value = (char*) key_name;
         s.size = kmip_strnlen_s(key_name, 50);
@@ -476,7 +476,7 @@ use_mid_level_api(BIO* bio,
 
     int attrib_count = idx;
 
-    result = kmip_bio_locate_with_context(&kmip_context, bio, a, attrib_count, locate_result);
+    result = kmip_bio_locate_with_context(&kmip_context, bio, a, attrib_count, locate_result, 16, 0);
     //result = use_low_level_api(&kmip_context, bio, a, attrib_count, locate_result);
     
     /* Handle the response results. */
@@ -608,7 +608,9 @@ main(int argc, char **argv)
         printf("Locate results: ");
         printf("located items: %d\n", locate_result.located_items);
         printf("returned items: %zu\n", locate_result.ids_size);
-        printf("id[0]=  %s\n", locate_result.ids[0]);
+        for(int i=0;i<locate_result.ids_size;++i){
+          printf("id[%i]=  %s\n", i, locate_result.ids[i]);
+        }
         printf("\n");
     }
 

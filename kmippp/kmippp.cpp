@@ -197,6 +197,16 @@ context::key_t context::op_get(context::id_t id) {
 
 }
 
+bool context::op_destroy(context::id_t id) {
+
+    int key_len = 0;
+    char* keyp = nullptr;
+    int result = kmip_bio_destroy_symmetric_key(bio_, const_cast<char*>(id.c_str()), id.length());
+    
+    return result == KMIP_OK;
+
+}
+
 context::name_t context::op_get_name_attr(context::id_t id) {
 
     int key_len = 0;
@@ -218,22 +228,14 @@ context::name_t context::op_get_name_attr(context::id_t id) {
 }
 
 context::ids_t context::op_locate(context::name_t name) {
-    Attribute a[4];
-    for(int i = 0; i < 4; i++) {
+    Attribute a[3];
+    for(int i = 0; i < 3; i++) {
         kmip_init_attribute(&a[i]);
-    }
-    
-    enum cryptographic_algorithm algorithm = KMIP_CRYPTOALG_AES;
-    a[0].type = KMIP_ATTR_CRYPTOGRAPHIC_ALGORITHM;
-    a[0].value = &algorithm;
-    
-    object_type loctype = KMIP_OBJTYPE_SYMMETRIC_KEY;
-    a[1].type = KMIP_ATTR_OBJECT_TYPE;
-    a[1].value = &loctype;
 
-    int32 mask = KMIP_CRYPTOMASK_ENCRYPT | KMIP_CRYPTOMASK_DECRYPT;
-    a[2].type = KMIP_ATTR_CRYPTOGRAPHIC_USAGE_MASK;
-    a[2].value = &mask;
+    }
+    object_type loctype = KMIP_OBJTYPE_SYMMETRIC_KEY;
+    a[0].type = KMIP_ATTR_OBJECT_TYPE;
+    a[0].value = &loctype;
 
     Name ts;
     TextString ts2 = {0,0};
@@ -241,24 +243,28 @@ context::ids_t context::op_locate(context::name_t name) {
     ts2.size = kmip_strnlen_s(ts2.value, 250);
     ts.value = &ts2;
     ts.type = KMIP_NAME_UNINTERPRETED_TEXT_STRING;
-    a[3].type = KMIP_ATTR_NAME;
-    a[3].value = &ts;
+    a[1].type = KMIP_ATTR_NAME;
+    a[1].value = &ts;
     
-    TemplateAttribute ta = {0};
-    ta.attributes = a;
-    ta.attribute_count = ARRAY_LENGTH(a);
+    int upto = 0;
+    int all = 1; // TMP
+    ids_t ret;
 
     LocateResponse locate_result;
-    int result = kmip_bio_locate(bio_, a, 4, &locate_result);
-    
-    if(result != 0) {
-      return {};
-    }
 
-    ids_t ret(locate_result.ids_size);
+    while (upto < all) {
+      // 16 is hard coded: seems like the most vault supports?
+      int result = kmip_bio_locate(bio_, a, 2, &locate_result, 16, upto);
 
-    for(int i=0;i<locate_result.ids_size;++i) {
-      ret[i] = locate_result.ids[i];
+      if (result != 0) {
+        return {};
+      }
+
+      for (int i = 0; i < locate_result.ids_size; ++i) {
+        ret.push_back(locate_result.ids[i]);
+      }
+      all = locate_result.located_items;  // shouldn't change after its != 1
+      upto += locate_result.ids_size;
     }
 
     return ret;
@@ -266,44 +272,43 @@ context::ids_t context::op_locate(context::name_t name) {
 }
 
 context::ids_t context::op_locate_by_group(context::name_t group) {
-    Attribute a[4];
-    for(int i = 0; i < 4; i++) {
+    Attribute a[2];
+    for(int i = 0; i < 2; i++) {
         kmip_init_attribute(&a[i]);
     }
     
-    enum cryptographic_algorithm algorithm = KMIP_CRYPTOALG_AES;
-    a[0].type = KMIP_ATTR_CRYPTOGRAPHIC_ALGORITHM;
-    a[0].value = &algorithm;
-    
     object_type loctype = KMIP_OBJTYPE_SYMMETRIC_KEY;
-    a[1].type = KMIP_ATTR_OBJECT_TYPE;
-    a[1].value = &loctype;
-
-    int32 mask = KMIP_CRYPTOMASK_ENCRYPT | KMIP_CRYPTOMASK_DECRYPT;
-    a[2].type = KMIP_ATTR_CRYPTOGRAPHIC_USAGE_MASK;
-    a[2].value = &mask;
+    a[0].type = KMIP_ATTR_OBJECT_TYPE;
+    a[0].value = &loctype;
 
     TextString ts2 = {0,0};
     ts2.value = const_cast<char*>(group.c_str());
     ts2.size = kmip_strnlen_s(ts2.value, 250);
-    a[3].type = KMIP_ATTR_OBJECT_GROUP;
-    a[3].value = &ts2;
+    a[1].type = KMIP_ATTR_OBJECT_GROUP;
+    a[1].value = &ts2;
     
     TemplateAttribute ta = {0};
     ta.attributes = a;
     ta.attribute_count = ARRAY_LENGTH(a);
 
+    int upto = 0;
+    int all = 1; // TMP
+    ids_t ret;
+
     LocateResponse locate_result;
-    int result = kmip_bio_locate(bio_, a, 4, &locate_result);
-    
-    if(result != 0) {
-      return {};
-    }
 
-    ids_t ret(locate_result.ids_size);
+    while (upto < all) {
+      int result = kmip_bio_locate(bio_, a, 2, &locate_result, 16, upto);
 
-    for(int i=0;i<locate_result.ids_size;++i) {
-      ret[i] = locate_result.ids[i];
+      if (result != 0) {
+        return {};
+      }
+
+      for (int i = 0; i < locate_result.ids_size; ++i) {
+        ret.push_back(locate_result.ids[i]);
+      }
+      all = locate_result.located_items;  // shouldn't change after its != 1
+      upto += locate_result.ids_size;
     }
 
     return ret;
@@ -311,38 +316,33 @@ context::ids_t context::op_locate_by_group(context::name_t group) {
 }
 
 context::ids_t context::op_all() {
-    Attribute a[3];
-    for(int i = 0; i < 3; i++) {
+    Attribute a[1];
+    for(int i = 0; i < 1; i++) {
         kmip_init_attribute(&a[i]);
     }
     
-    enum cryptographic_algorithm algorithm = KMIP_CRYPTOALG_AES;
-    a[0].type = KMIP_ATTR_CRYPTOGRAPHIC_ALGORITHM;
-    a[0].value = &algorithm;
-    
     object_type loctype = KMIP_OBJTYPE_SYMMETRIC_KEY;
-    a[1].type = KMIP_ATTR_OBJECT_TYPE;
-    a[1].value = &loctype;
-
-    int32 mask = KMIP_CRYPTOMASK_ENCRYPT | KMIP_CRYPTOMASK_DECRYPT;
-    a[2].type = KMIP_ATTR_CRYPTOGRAPHIC_USAGE_MASK;
-    a[2].value = &mask;
-    
-    TemplateAttribute ta = {0};
-    ta.attributes = a;
-    ta.attribute_count = ARRAY_LENGTH(a);
+    a[0].type = KMIP_ATTR_OBJECT_TYPE;
+    a[0].value = &loctype;
 
     LocateResponse locate_result;
-    int result = kmip_bio_locate(bio_, a, 3, &locate_result);
-    
-    if(result != 0) {
-      return {};
-    }
 
-    ids_t ret(locate_result.ids_size);
+    int upto = 0;
+    int all = 1; // TMP
+    ids_t ret;
 
-    for(int i=0;i<locate_result.ids_size;++i) {
-      ret[i] = locate_result.ids[i];
+    while (upto < all) {
+      int result = kmip_bio_locate(bio_, a, 1, &locate_result, 16, upto);
+
+      if (result != 0) {
+        return {};
+      }
+
+      for (int i = 0; i < locate_result.ids_size; ++i) {
+        ret.push_back(locate_result.ids[i]);
+      }
+      all = locate_result.located_items;  // shouldn't change after its != 1
+      upto += locate_result.ids_size;
     }
 
     return ret;

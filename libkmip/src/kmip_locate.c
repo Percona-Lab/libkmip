@@ -213,7 +213,6 @@ void kmip_print_locate_response_payload(FILE* f, int indent, LocateResponsePaylo
 }
 void kmip_free_locate_response_payload(KMIP* ctx, LocateResponsePayload *value)
 {
-    //printf("** free response payload\n");
     if (value->unique_ids)
     {
         kmip_free_unique_identifiers(ctx, value->unique_ids);
