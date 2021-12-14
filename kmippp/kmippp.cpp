@@ -131,7 +131,7 @@ context::id_t context::op_register(context::name_t name, name_t group, key_t key
     a[0].type = KMIP_ATTR_CRYPTOGRAPHIC_ALGORITHM;
     a[0].value = &algorithm;
     
-    int32 length = 256;
+    int32 length = key.size()*8;
     a[1].type = KMIP_ATTR_CRYPTOGRAPHIC_LENGTH;
     a[1].value = &length;
 
@@ -263,7 +263,15 @@ context::ids_t context::op_locate(context::name_t name) {
       for (int i = 0; i < locate_result.ids_size; ++i) {
         ret.push_back(locate_result.ids[i]);
       }
-      all = locate_result.located_items;  // shouldn't change after its != 1
+      if (locate_result.located_items != 0) {
+        all = locate_result.located_items;  // shouldn't change after its != 1
+      } else {
+        // Dummy server sometimes returns 0 for located_items
+        all += locate_result.ids_size;
+        if(locate_result.ids_size == 0) {
+          --all;
+        }
+      }
       upto += locate_result.ids_size;
     }
 
@@ -307,9 +315,18 @@ context::ids_t context::op_locate_by_group(context::name_t group) {
       for (int i = 0; i < locate_result.ids_size; ++i) {
         ret.push_back(locate_result.ids[i]);
       }
-      all = locate_result.located_items;  // shouldn't change after its != 1
+      if (locate_result.located_items != 0) {
+        all = locate_result.located_items;  // shouldn't change after its != 1
+      } else {
+        // Dummy server sometimes returns 0 for located_items
+        all += locate_result.ids_size;
+        if(locate_result.ids_size == 0) {
+          --all;
+        }
+      }
       upto += locate_result.ids_size;
     }
+
 
     return ret;
 
@@ -341,9 +358,18 @@ context::ids_t context::op_all() {
       for (int i = 0; i < locate_result.ids_size; ++i) {
         ret.push_back(locate_result.ids[i]);
       }
-      all = locate_result.located_items;  // shouldn't change after its != 1
+      if (locate_result.located_items != 0) {
+        all = locate_result.located_items;  // shouldn't change after its != 1
+      } else {
+        // Dummy server sometimes returns 0 for located_items
+        all += locate_result.ids_size;
+        if(locate_result.ids_size == 0) {
+          --all;
+        }
+      }
       upto += locate_result.ids_size;
     }
+
 
     return ret;
 
