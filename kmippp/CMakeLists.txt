@@ -6,6 +6,7 @@ add_library(
   )
 
 target_link_libraries(kmippp kmip)
+set_property(TARGET kmippp PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(
   kmippp PUBLIC
@@ -19,6 +20,7 @@ set_target_properties(
 
 
 export(TARGETS kmip kmippp FILE "kmippp.cmake")
+
 install(
   TARGETS kmippp
   EXPORT kmippp

@@ -11,6 +11,8 @@ add_library(
   )
 
 target_link_libraries(kmip ${OPENSSL_LIBRARIES})
+set_property(TARGET kmip PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 
 target_include_directories(
   kmip PUBLIC
