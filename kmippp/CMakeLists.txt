@@ -18,7 +18,7 @@ set_target_properties(
   )
 
 
-export(TARGETS kmippp FILE "kmippp.cmake")
+export(TARGETS kmip kmippp FILE "kmippp.cmake")
 install(
   TARGETS kmippp
   EXPORT kmippp

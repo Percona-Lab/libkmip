@@ -20,8 +20,7 @@ context::context(std::string server_address,
                                std::string client_cert_fn,
                                std::string client_key_fn,
                                std::string ca_cert_fn) {
-    OPENSSL_init_ssl(0, nullptr);
-    ctx_ = SSL_CTX_new(TLS_client_method());
+    ctx_= SSL_CTX_new(SSLv23_method());
 
     if(SSL_CTX_use_certificate_file(ctx_, client_cert_fn.c_str(), SSL_FILETYPE_PEM) != 1)
     {

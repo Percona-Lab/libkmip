@@ -10,7 +10,7 @@ add_library(
   kmip_memset.c
   )
 
-target_link_libraries(kmip OpenSSL::SSL)
+target_link_libraries(kmip ${OPENSSL_LIBRARIES})
 
 target_include_directories(
   kmip PUBLIC

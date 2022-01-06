@@ -94,8 +94,8 @@ use_high_level_api(const char *server_address,
     /* Set up the TLS connection to the KMIP server. */
     SSL_CTX *ctx = NULL;
     SSL *ssl = NULL;
-    OPENSSL_init_ssl(0, NULL);
-    ctx = SSL_CTX_new(TLS_client_method());
+    SSL_library_init();
+    ctx = SSL_CTX_new(SSLv23_method());
     
     printf("\n");
     printf("Loading the client certificate: %s\n", client_certificate);

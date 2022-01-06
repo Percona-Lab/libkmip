@@ -541,8 +541,8 @@ main(int argc, char **argv)
     /* Set up the TLS connection to the KMIP server. */
     SSL_CTX *ctx = NULL;
     SSL *ssl = NULL;
-    OPENSSL_init_ssl(0, NULL);
-    ctx = SSL_CTX_new(TLS_client_method());
+    SSL_library_init();
+    ctx = SSL_CTX_new(SSLv23_method());
 
     if (!ctx)
         return 1;
