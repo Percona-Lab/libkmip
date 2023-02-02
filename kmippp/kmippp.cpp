@@ -160,7 +160,7 @@ context::id_t context::op_register(context::name_t name, name_t group, key_t key
 
     int id_max_len = 64;
     char* idp = nullptr;
-    int result = kmip_bio_register_symmetric_key(bio_, &ta, reinterpret_cast<char*>(key.data()), key.size(), &idp, &id_max_len);
+    int result = kmip_bio_register_symmetric_key(bio_, &ta, key.data(), key.size(), &idp, &id_max_len);
     
     std::string ret;
     if(idp != nullptr) {

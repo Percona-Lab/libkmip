@@ -264,7 +264,7 @@ int kmip_bio_create_symmetric_key(BIO *bio,
 
 int kmip_bio_register_symmetric_key(BIO *bio,
                                     TemplateAttribute *template_attribute,
-                                    char* key, int key_len,
+                                    uint8* key, int key_len,
                                     char **id, int *id_size)
 {
     if(bio == NULL || template_attribute == NULL || id == NULL || id_size == NULL || key == NULL || key_len == 0)
