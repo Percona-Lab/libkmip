@@ -10,7 +10,7 @@ add_library(
   kmip_memset.c
   )
 
-target_link_libraries(kmip ${OPENSSL_LIBRARIES})
+target_link_libraries(kmip OpenSSL::SSL OpenSSL::Crypto)
 set_property(TARGET kmip PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 
