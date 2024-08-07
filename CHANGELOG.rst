@@ -2,6 +2,13 @@
 Changelog
 =========
 
+.. _v0.2.1:
+
+0.2.1 - 2024-08-08
+~~~~~~~~~~~~~~~~~~
+
+* Add library version funnction "const char* kmip_library_version()". See KMIP_LIBRARY_VERSION in kmip.h
+
 .. _v0.2:
 
 0.2 - July 12, 2019

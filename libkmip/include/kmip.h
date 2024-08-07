@@ -43,6 +43,8 @@ typedef int64 intptr;
 typedef float real32;
 typedef double real64;
 
+#define KMIP_LIBRARY_VERSION "0.2.1"
+
 #define KMIP_TRUE (1)
 #define KMIP_FALSE (0)
 
@@ -1462,6 +1464,11 @@ do                                                      \
 } while(0)
 
 #define CALCULATE_PADDING(A) ((8 - ((A) % 8)) % 8)
+
+/*
+KMIP library version
+*/
+inline const char* kmip_libray_version(){ return KMIP_LIBRARY_VERSION; }
 
 /*
 Miscellaneous Utilities
