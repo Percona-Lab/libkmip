@@ -16,7 +16,7 @@ namespace kmippp {
   class context {
     public:
 
-      using key_t = std::vector<unsigned char>;
+      using key_t = std::vector<uint8_t>;
       using id_t = std::string;
       using ids_t = std::vector<std::string>;
       using name_t = std::string;
