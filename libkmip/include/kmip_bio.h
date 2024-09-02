@@ -40,6 +40,7 @@ OpenSSH BIO API
 
 int kmip_bio_create_symmetric_key(BIO *, TemplateAttribute *, char **, int *);
 int kmip_bio_register_symmetric_key(BIO *, TemplateAttribute *, char*, int, char **, int *);
+int kmip_bio_activate_symmetric_key(BIO *, char *, int);
 int kmip_bio_get_symmetric_key(BIO *, char *, int, char **, int *);
 int kmip_bio_get_name_attribute(BIO *, char *, int, char **, int *);
 int kmip_bio_destroy_symmetric_key(BIO *, char *, int);

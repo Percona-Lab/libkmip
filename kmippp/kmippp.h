@@ -39,6 +39,9 @@ namespace kmippp {
       // KMIP::get operation, retrieve a symmetric key by id
       key_t op_get(id_t id);
 
+      // KMIP::activate operation, activate a registered key by id
+      bool op_activate(id_t id);
+
       // KMIP::get_attribute operation, retrieve the name of a symmetric key by id
       name_t op_get_name_attr(id_t id);
 

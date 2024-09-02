@@ -196,6 +196,14 @@ context::key_t context::op_get(context::id_t id) {
 
 }
 
+bool context::op_activate(context::id_t id) {
+    int result = kmip_bio_activate_symmetric_key(bio_, const_cast<char*>(id.c_str()), id.length());
+    if(result != KMIP_OK) {
+        return false;
+    }
+    return true;
+}
+
 bool context::op_destroy(context::id_t id) {
 
     int key_len = 0;

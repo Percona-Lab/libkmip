@@ -35,6 +35,7 @@ macro(add_pp_demo name)
 endmacro()
 
 add_pp_demo(create)
+add_pp_demo(activate)
 add_pp_demo(get)
 add_pp_demo(get_name)
 add_pp_demo(register)
