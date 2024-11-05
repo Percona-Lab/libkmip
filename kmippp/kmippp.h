@@ -1,5 +1,5 @@
-
-
+#ifndef KMIPPP_H
+#define KMIPPP_H
 
 #include <memory>
 #include <cstdint>
@@ -64,3 +64,5 @@ namespace kmippp {
   };
 
 }
+
+#endif  // KMIPPP_H
