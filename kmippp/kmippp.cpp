@@ -12,6 +12,7 @@
 #include "kmip.h"
 #include "kmip_bio.h"
 #include "kmip_locate.h"
+#include "core_error.hpp"
 
 namespace kmippp {
 
@@ -25,24 +26,24 @@ context::context(std::string server_address,
     if(SSL_CTX_use_certificate_file(ctx_, client_cert_fn.c_str(), SSL_FILETYPE_PEM) != 1)
     {
         SSL_CTX_free(ctx_);
-        throw std::runtime_error("Loading the client certificate failed");
+        core_error::raise_with_error_string("Loading the client certificate failed");
     }
     if(SSL_CTX_use_PrivateKey_file(ctx_, client_key_fn.c_str(), SSL_FILETYPE_PEM) != 1)
     {
         SSL_CTX_free(ctx_);
-        throw std::runtime_error("Loading the client key failed");
+        core_error::raise_with_error_string("Loading the client key failed");
     }
     if(SSL_CTX_load_verify_locations(ctx_, ca_cert_fn.c_str(), nullptr) != 1)
     {
         SSL_CTX_free(ctx_);
-        throw std::runtime_error("Loading the CA certificate failed");
+        core_error::raise_with_error_string("Loading the CA certificate failed");
     }
 
     bio_ = BIO_new_ssl_connect(ctx_);
     if(bio_ == nullptr)
     {
         SSL_CTX_free(ctx_);
-        throw std::runtime_error("BIO_new_ssl_connect failed");
+        core_error::raise_with_error_string("BIO_new_ssl_connect failed");
     }
     
     SSL *ssl = nullptr;
@@ -54,7 +55,7 @@ context::context(std::string server_address,
     {
         BIO_free_all(bio_);
         SSL_CTX_free(ctx_);
-        throw std::runtime_error("BIO_do_connect failed");
+        core_error::raise_with_error_string("BIO_do_connect failed");
     }
 
 }

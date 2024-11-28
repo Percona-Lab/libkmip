@@ -2,6 +2,8 @@
 add_library(
   kmippp
   STATIC
+  core_error.hpp
+  core_error.cpp
   kmippp.cpp
   )
 
