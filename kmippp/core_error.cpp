@@ -12,7 +12,8 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #include <array>
 #include <cassert>
@@ -21,28 +22,32 @@
 
 #include <core_error.hpp>
 
-namespace kmippp {
+namespace kmippp
+{
 
 static constexpr std::size_t error_message_buffer_size = 256;
 
 /* static */
-[[noreturn]] void core_error::raise_with_error_string(
-    const std::string &prefix /* = std::string() */) {
-  std::string message{prefix};
+[[noreturn]] void
+core_error::raise_with_error_string (const std::string &prefix /* = std::string() */)
+{
+  std::string message{ prefix };
 
   using buffer_type = std::array<char, error_message_buffer_size>;
   buffer_type buffer;
 
-  unsigned long err = ERR_get_error();
-  if (err != 0) {
-    if (!prefix.empty()) message += ": ";
+  unsigned long err = ERR_get_error ();
+  if (err != 0)
+    {
+      if (!prefix.empty ())
+        message += ": ";
 
-    ERR_error_string_n(err, buffer.data(), buffer.size());
-    message += buffer.data();
-    ERR_clear_error();
-  }
+      ERR_error_string_n (err, buffer.data (), buffer.size ());
+      message += buffer.data ();
+      ERR_clear_error ();
+    }
 
-  throw core_error{message};
+  throw core_error{ message };
 }
 
-}  // namespace kmippp
+} // namespace kmippp
