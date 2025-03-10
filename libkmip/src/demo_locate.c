@@ -21,6 +21,7 @@
 void
 print_help (const char *app)
 {
+  printf("libkmip version: %s \n", KMIP_LIB_VERSION_STR);
   printf ("Usage: %s [flag value | flag] ...\n\n", app);
   printf ("Flags:\n");
   printf ("-a addr : the IP address of the KMIP server\n");
