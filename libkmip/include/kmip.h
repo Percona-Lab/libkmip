@@ -13,6 +13,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "libkmip_version.h"
+
 #ifdef __cplusplus
 extern "C"
 {
