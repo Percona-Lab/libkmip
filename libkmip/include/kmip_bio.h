@@ -12,6 +12,7 @@
 #include "kmip.h"
 #include <openssl/ssl.h>
 
+#define LAST_RESULT_MAX_MESSAGE_SIZE 512 //could be big with HasiCorp Vault
 #ifdef __cplusplus
 extern "C"
 {

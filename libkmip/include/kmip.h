@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h> // we have FILE* vars
 
 #include "libkmip_version.h"
 
@@ -19,6 +20,9 @@
 extern "C"
 {
 #endif
+
+#define KMIP_MAX_MESSAGE_SIZE 8192
+#define KMIP_ERROR_MESSAGE_SIZE  200
 
   /*
   Types and Constants
