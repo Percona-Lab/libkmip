@@ -874,6 +874,7 @@ kmip_check_enum_value (enum kmip_version version, enum tag t, int value)
         case KMIP_OP_QUERY:
         case KMIP_OP_LOCATE:
         case KMIP_OP_REGISTER:
+        case KMIP_OP_REVOKE:
           return (KMIP_OK);
           break;
 
@@ -4604,8 +4605,8 @@ kmip_print_register_request_payload (FILE *f, int indent, RegisterRequestPayload
       kmip_print_template_attribute (f, indent + 2, value->template_attribute);
       kmip_print_attributes (f, indent + 2, value->attributes);
       kmip_print_protection_storage_masks (f, indent + 2, value->protection_storage_masks);
-
-      kmip_print_symmetric_key (f, indent + 2, &value->object);
+//TODO (ol) other data types
+      kmip_print_symmetric_key (f, indent + 2, &value->object.symmetric_key);
     }
 }
 
@@ -8413,7 +8414,7 @@ kmip_compare_register_request_payload (const RegisterRequestPayload *a, const Re
             }
         }
 
-      return kmip_compare_symmetric_key (&a->object, &b->object);
+      return kmip_compare_symmetric_key (&a->object.symmetric_key, &b->object.symmetric_key);
     }
 
   return (KMIP_TRUE);
@@ -11283,6 +11284,30 @@ kmip_encode_private_key (KMIP *ctx, const PrivateKey *value)
 }
 
 int
+kmip_encode_secret_data (KMIP *ctx, const SecretData *value)
+{
+  int result = 0;
+  result     = kmip_encode_int32_be (ctx, TAG_TYPE (KMIP_TAG_SECRET_DATA, KMIP_TYPE_STRUCTURE));
+  CHECK_RESULT (ctx, result);
+
+  uint8 *length_index = ctx->index;
+  uint8 *value_index  = ctx->index += 4;
+
+  result = kmip_encode_enum (ctx, KMIP_TAG_SECRET_DATA_TYPE, value->secret_data_type);
+  result = kmip_encode_key_block (ctx, value->key_block);
+  CHECK_RESULT (ctx, result);
+
+  uint8 *curr_index = ctx->index;
+  ctx->index        = length_index;
+
+  result = kmip_encode_length (ctx, curr_index - value_index);
+  CHECK_RESULT (ctx, result);
+
+  ctx->index = curr_index;
+  return (KMIP_OK);
+}
+
+int
 kmip_encode_key_wrapping_specification (KMIP *ctx, const KeyWrappingSpecification *value)
 {
   int result = 0;
@@ -11487,10 +11512,22 @@ kmip_encode_register_request_payload (KMIP *ctx, const RegisterRequestPayload *v
         }
     }
 
-  // TODO: this currently onlyhandles symmetric keys, but in theory the
-  // protocol also supports other types
-  result = kmip_encode_symmetric_key (ctx, &value->object);
-  CHECK_RESULT (ctx, result);
+  //TODO: this currently only handles symmetric keys and secret, but in theory the protocol also supports other types
+  switch (value->object_type)
+  {
+    case KMIP_OBJTYPE_SYMMETRIC_KEY:
+      result = kmip_encode_symmetric_key (ctx, &value->object.symmetric_key);
+    CHECK_RESULT (ctx, result);
+    break;
+
+    case KMIP_OBJTYPE_SECRET_DATA:
+      result = kmip_encode_secret_data (ctx, &value->object.secret_data);
+    CHECK_RESULT (ctx, result);
+    break;
+
+    default:
+      result = KMIP_NOT_IMPLEMENTED;
+  }
 
   uint8 *curr_index = ctx->index;
   ctx->index        = length_index;
@@ -12264,6 +12301,10 @@ kmip_encode_request_batch_item (KMIP *ctx, const RequestBatchItem *value)
       result = kmip_encode_locate_request_payload (ctx, (LocateRequestPayload *)value->request_payload);
       break;
 
+    case KMIP_OP_REVOKE:
+      result = kmip_encode_revoke_request_payload (ctx, (RevokeRequestPayload *)value->request_payload);
+      break;
+
     default:
       kmip_push_error_frame (ctx, __func__, __LINE__);
       return (KMIP_NOT_IMPLEMENTED);
@@ -12352,6 +12393,10 @@ kmip_encode_response_batch_item (KMIP *ctx, const ResponseBatchItem *value)
     case KMIP_OP_LOCATE:
       result = kmip_encode_locate_response_payload (ctx, (LocateResponsePayload *)value->response_payload);
       break;
+
+    case KMIP_OP_REVOKE:
+      result = kmip_encode_revoke_response_payload (ctx, (RevokeResponsePayload *)value->response_payload);
+    break;
 
     default:
       kmip_push_error_frame (ctx, __func__, __LINE__);
@@ -12485,6 +12530,98 @@ kmip_encode_query_response_payload (KMIP *ctx, const QueryResponsePayload *value
   (void)ctx;
   (void)value;
   return (KMIP_NOT_IMPLEMENTED);
+}
+
+
+int
+kmip_encode_revocation_reason (KMIP *ctx, const RevocationReason *value)
+{
+  int result = 0;
+  result     = kmip_encode_int32_be (ctx, TAG_TYPE (KMIP_TAG_REVOCATION_REASON, KMIP_TYPE_STRUCTURE));
+  CHECK_RESULT (ctx, result);
+
+  uint8 *length_index = ctx->index;
+  uint8 *value_index  = ctx->index += 4;
+
+  result = kmip_encode_enum (ctx, KMIP_TAG_REVOCATION_REASON_CODE, value->reason);
+  CHECK_RESULT (ctx, result);
+
+  if (value->message != NULL)
+    {
+      result = kmip_encode_text_string (ctx, KMIP_TAG_REVOKATION_MESSAGE, value->message);
+      CHECK_RESULT (ctx, result);
+    }
+
+  uint8 *curr_index = ctx->index;
+  ctx->index        = length_index;
+
+  result = kmip_encode_length (ctx, curr_index - value_index);
+  CHECK_RESULT (ctx, result);
+
+  ctx->index = curr_index;
+
+  return (KMIP_OK);
+}
+
+int
+kmip_encode_revoke_request_payload (KMIP *ctx, const RevokeRequestPayload *value)
+{
+  int result = 0;
+  result     = kmip_encode_int32_be (ctx, TAG_TYPE (KMIP_TAG_REQUEST_PAYLOAD, KMIP_TYPE_STRUCTURE));
+  CHECK_RESULT (ctx, result);
+
+  uint8 *length_index = ctx->index;
+  uint8 *value_index  = ctx->index += 4;
+
+  if (value->unique_identifier != NULL)
+    {
+      result = kmip_encode_text_string (ctx, KMIP_TAG_UNIQUE_IDENTIFIER, value->unique_identifier);
+      CHECK_RESULT (ctx, result);
+    }
+  if (value->revocation_reason != NULL)
+    {
+      result = kmip_encode_revocation_reason (ctx, value->revocation_reason);
+      CHECK_RESULT (ctx, result);
+    }
+  if (value->compromise_occurence_date != 0L)
+    {
+      result = kmip_encode_date_time (ctx, KMIP_TAG_COMPROMISE_OCCURRANCE_DATE, value->compromise_occurence_date);
+      CHECK_RESULT (ctx, result);
+    }
+
+  uint8 *curr_index = ctx->index;
+  ctx->index        = length_index;
+
+  result = kmip_encode_length (ctx, curr_index - value_index);
+  CHECK_RESULT (ctx, result);
+
+  ctx->index = curr_index;
+
+  return (KMIP_OK);
+}
+
+int
+kmip_encode_revoke_response_payload (KMIP *ctx, const RevokeResponsePayload *value)
+{
+  int result = 0;
+  result     = kmip_encode_int32_be (ctx, TAG_TYPE (KMIP_TAG_RESPONSE_PAYLOAD, KMIP_TYPE_STRUCTURE));
+  CHECK_RESULT (ctx, result);
+
+  uint8 *length_index = ctx->index;
+  uint8 *value_index  = ctx->index += 4;
+
+  result = kmip_encode_text_string (ctx, KMIP_TAG_UNIQUE_IDENTIFIER, value->unique_identifier);
+  CHECK_RESULT (ctx, result);
+
+  uint8 *curr_index = ctx->index;
+  ctx->index        = length_index;
+
+  result = kmip_encode_length (ctx, curr_index - value_index);
+  CHECK_RESULT (ctx, result);
+
+  ctx->index = curr_index;
+
+  return (KMIP_OK);
 }
 
 /*
@@ -14057,6 +14194,32 @@ kmip_decode_private_key (KMIP *ctx, PrivateKey *value)
 }
 
 int
+kmip_decode_secret_data (KMIP *ctx, SecretData *value)
+{
+  CHECK_BUFFER_FULL (ctx, 8);
+
+  int    result   = 0;
+  int32  tag_type = 0;
+  uint32 length   = 0;
+
+  kmip_decode_int32_be (ctx, &tag_type);
+  CHECK_TAG_TYPE (ctx, tag_type, KMIP_TAG_SECRET_DATA, KMIP_TYPE_STRUCTURE);
+
+  kmip_decode_length (ctx, &length);
+  CHECK_BUFFER_FULL (ctx, length);
+
+  result = kmip_decode_enum (ctx, KMIP_TAG_SECRET_DATA_TYPE, &value->secret_data_type);
+
+  value->key_block = ctx->calloc_func (ctx->state, 1, sizeof (KeyBlock));
+  CHECK_NEW_MEMORY (ctx, value->key_block, sizeof (KeyBlock), "KeyBlock structure");
+
+  result = kmip_decode_key_block (ctx, value->key_block);
+  CHECK_RESULT (ctx, result);
+
+  return (KMIP_OK);
+}
+
+int
 kmip_decode_key_wrapping_specification (KMIP *ctx, KeyWrappingSpecification *value)
 {
   CHECK_BUFFER_FULL (ctx, 8);
@@ -14319,7 +14482,7 @@ kmip_decode_register_request_payload (KMIP *ctx, RegisterRequestPayload *value)
         }
     }
 
-  result = kmip_decode_symmetric_key (ctx, &value->object);
+  result = kmip_decode_symmetric_key (ctx, &value->object.symmetric_key);
   if (result != KMIP_OK)
     {
       kmip_free_attributes (ctx, value->attributes);
@@ -14334,7 +14497,7 @@ kmip_decode_register_request_payload (KMIP *ctx, RegisterRequestPayload *value)
   // value->object = ctx->calloc_func(ctx->state, 1, sizeof(SymmetricKey));
   // CHECK_NEW_MEMORY(ctx, value->object, sizeof(SymmetricKey), "SymmetricKey
   // structure");
-  result = kmip_decode_symmetric_key (ctx, &value->object);
+  result = kmip_decode_symmetric_key (ctx, &value->object.symmetric_key);
   CHECK_RESULT (ctx, result);
 
   return (KMIP_OK);
@@ -14481,6 +14644,13 @@ kmip_decode_get_response_payload (KMIP *ctx, GetResponsePayload *value)
       value->object = ctx->calloc_func (ctx->state, 1, sizeof (PrivateKey));
       CHECK_NEW_MEMORY (ctx, value->object, sizeof (PrivateKey), "PrivateKey structure");
       result = kmip_decode_private_key (ctx, (PrivateKey *)value->object);
+      CHECK_RESULT (ctx, result);
+      break;
+
+    case KMIP_OBJTYPE_SECRET_DATA:
+      value->object = ctx->calloc_func (ctx->state, 1, sizeof (SecretData));
+      CHECK_NEW_MEMORY (ctx, value->object, sizeof (SecretData), "SecretData structure");
+      result = kmip_decode_secret_data (ctx, (SecretData *)value->object);
       CHECK_RESULT (ctx, result);
       break;
 
@@ -14820,9 +14990,12 @@ kmip_decode_response_batch_item (KMIP *ctx, ResponseBatchItem *value)
   //In case of some error reported by server we should not decode response payload because it is empty
   if (value->result_status == KMIP_STATUS_OPERATION_FAILED)
     {
+      //make 0-terminated string for kmip_set_error_message()
+      char msg[value->result_message->size+1];
+      kmip_copy_textstring(msg, value->result_message,value->result_message->size+1);
       kmip_set_error_message(ctx, value->result_message->value);
       kmip_push_error_frame (ctx, __func__, __LINE__);
-      return KMIP_ERROR_SERVERSIDE;
+      return KMIP_OK;
     }
 
   /* NOTE (ph) Omitting the tag check is a good way to test error output. */
@@ -14885,6 +15058,13 @@ kmip_decode_response_batch_item (KMIP *ctx, ResponseBatchItem *value)
         CHECK_NEW_MEMORY (ctx, value->response_payload, sizeof (LocateResponsePayload),
                           "LocateResponsePayload structure");
         result = kmip_decode_locate_response_payload (ctx, value->response_payload);
+        break;
+
+      case KMIP_OP_REVOKE:
+        value->response_payload = ctx->calloc_func (ctx->state, 1, sizeof (RevokeResponsePayload));
+        CHECK_NEW_MEMORY (ctx, value->response_payload, sizeof (RevokeResponsePayload),
+                        "RevokeResponsePayload structure");
+        result = kmip_decode_revoke_response_payload (ctx, value->response_payload);
         break;
 
       default:
@@ -15734,6 +15914,39 @@ kmip_decode_query_response_payload (KMIP *ctx, QueryResponsePayload *value)
       result = kmip_decode_server_information (ctx, value->server_information);
       CHECK_RESULT (ctx, result);
     }
+
+  return (KMIP_OK);
+}
+
+int
+kmip_decode_revoke_request_payload (KMIP *ctx, RevokeRequestPayload *value)
+{
+  // TODO: implement
+  (void)ctx;
+  (void)value;
+  return (KMIP_NOT_IMPLEMENTED);
+}
+
+int
+kmip_decode_revoke_response_payload (KMIP *ctx, RevokeResponsePayload *value)
+{
+  CHECK_BUFFER_FULL (ctx, 8);
+
+  int    result   = 0;
+  int32  tag_type = 0;
+  uint32 length   = 0;
+
+  kmip_decode_int32_be (ctx, &tag_type);
+  CHECK_TAG_TYPE (ctx, tag_type, KMIP_TAG_RESPONSE_PAYLOAD, KMIP_TYPE_STRUCTURE);
+
+  kmip_decode_length (ctx, &length);
+  CHECK_BUFFER_FULL (ctx, length);
+
+  value->unique_identifier = ctx->calloc_func (ctx->state, 1, sizeof (TextString));
+  CHECK_NEW_MEMORY (ctx, value->unique_identifier, sizeof (TextString), "UniqueIdentifier text string");
+
+  result = kmip_decode_text_string (ctx, KMIP_TAG_UNIQUE_IDENTIFIER, value->unique_identifier);
+  CHECK_RESULT (ctx, result);
 
   return (KMIP_OK);
 }

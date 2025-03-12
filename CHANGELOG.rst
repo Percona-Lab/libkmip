@@ -2,6 +2,27 @@
 Changelog
 =========
 
+.. _v0.3.0:
+
+0.3.0 - March 19, 2025
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* Add implementation of REVOKE operation
+* Add implementation of REGISTER and GET operations for SECRET data type
+* Better server-side message handling
+
+.. _v0.2.0:
+
+0.2.0 - March 17, 2025
+~~~~~~~~~~~~~~~~~~~~~~
+
+* Add libkmip_version.h to track the library versions
+* Add fix of bug with double memory freeing in case of an error
+* Add fix of a bug of ignoring server side error
+* Slightly better error messages
+* Add implementation of ACTIVATE operation in kmip_bio and in kmippp libraries
+* Other earlier updates and fixes, please see git log
+
 .. _v0.2:
 
 0.2 - July 12, 2019
