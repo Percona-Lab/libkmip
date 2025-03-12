@@ -1,0 +1,36 @@
+# Project information
+PROJECT_NAME           = libkmip
+PROJECT_NUMBER         = 0.4.0
+OUTPUT_DIRECTORY       = generated-docs
+
+# Input settings
+INPUT                  = .  # Scan the current directory for source files
+RECURSIVE              = YES
+
+# Output settings
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+GENERATE_XML           = NO
+GENERATE_HTMLHELP      = YES
+
+# UML related settings
+UML_LOOK               = YES
+HAVE_DOT               = YES
+DOT_PATH               = /usr/bin/dot  # Adjust this path to where your 'dot' executable is located
+PLANTUML_JAR_PATH      = /usr/share/java/plantuml.jar
+PLANTUML_PREPROC       = NO
+PLANTUML_INCLUDE_PATH  =
+PLANTUML_CONFIG_FILE   =
+# Enable class diagram generation
+CLASS_DIAGRAMS         = YES
+COLLABORATION_GRAPH   = YES
+UML_LIMIT_NUM_FIELDS   = 50
+TEMPLATE_RELATIONS     = YES
+MAX_DOT_GRAPH_DEPTH    = 0
+MAX_DOT_GRAPH_NODES    = 0
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_VIRTUAL_FUNCTIONS = NO
+SHOW_INCLUDE_FILES     = YES
+SHOW_USED_FILES        = YES
+SHOW_FILES             = YES

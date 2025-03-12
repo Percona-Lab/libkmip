@@ -1265,8 +1265,8 @@ kmip_init (KMIP *ctx, void *buffer, size_t buffer_size, enum kmip_version v)
   if (ctx->memcpy_func == NULL)
     ctx->memcpy_func = &kmip_memcpy;
 
-  ctx->max_message_size   = 8192;
-  ctx->error_message_size = 200;
+  ctx->max_message_size   = KMIP_MAX_MESSAGE_SIZE;
+  ctx->error_message_size = KMIP_ERROR_MESSAGE_SIZE;
   ctx->error_message      = NULL;
 
   ctx->error_frame_count = 20;

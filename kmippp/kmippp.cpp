@@ -129,7 +129,7 @@ context::op_register (context::name_t name, name_t group, key_t key)
 {
   int attr_count;
 
-  group.empty()? attr_count = 4 : attr_count = 5;
+  group.empty() ? attr_count = 4 : attr_count = 5;
 
   Attribute a[attr_count];
   for (int i = 0; i < attr_count; i++)
