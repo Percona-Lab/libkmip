@@ -43,4 +43,10 @@ add_pp_demo(get_name)
 add_pp_demo(register)
 add_pp_demo(locate)
 add_pp_demo(all)
+add_pp_demo(revoke)
+add_pp_demo(get_secret)
+add_pp_demo(register_secret)
+add_pp_demo(destroy)
+
+
 

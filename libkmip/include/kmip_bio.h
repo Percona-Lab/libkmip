@@ -57,6 +57,11 @@ extern "C"
                                     LocateResponse *locate_result, int max_items, int offset);
   int kmip_bio_send_request_encoding (KMIP *, BIO *, char *, int, char **, int *);
 
+  int kmip_bio_revoke (BIO *, char *, int, char *, int, enum revocation_reason_type reason, time_t occurrence_time);
+
+  int kmip_bio_register_secret (BIO *, TemplateAttribute *, char *, int, char **, int *, enum secret_data_type);
+  int kmip_bio_get_secret (BIO *, char *, int, char **, int *);
+
 #ifdef __cplusplus
 }
 #endif

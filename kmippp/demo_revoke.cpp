@@ -19,14 +19,18 @@ main (int argc, char **argv)
   kmippp::context ctx (argv[1], argv[2], argv[3], argv[4], argv[5]);
   std::string     key_id = argv[6];
 
-  if (!ctx.op_activate (key_id))
+  // for just deactivation incident occurrence time should be 0, it makes it
+  // ignored in the low level functions
+  if (!ctx.op_revoke (key_id, 1, "Deactivate", 0L))
     {
-      std::cerr << "Failed to activate key " << key_id << std::endl;
+      std::cerr << "Failed to revoke the key: " << key_id << std::endl;
       std::cout << ctx.get_last_result () << std::endl;
-      return -1;
+    }
+  else
+    {
+      std::cout << "Key: " << key_id << " deactivated." << std::endl;
     }
 
-  std::cout << "Key: " << key_id << " activated." << std::endl;
   std::cout << "end!" << std::endl;
 
   return 0;

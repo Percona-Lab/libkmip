@@ -18,6 +18,12 @@ main (int argc, char **argv)
   kmippp::context ctx (argv[1], argv[2], argv[3], argv[4], argv[5]);
 
   auto key = ctx.op_get (argv[6]);
+  if(key.empty ())
+    {
+      std::cout << "Can not get Key: " << argv[6] << std::endl;
+      std::cout << ctx.get_last_result () << std::endl;
+      return 1;
+    }
   std::cout << "Key: 0x";
   for (auto const &c : key)
     {

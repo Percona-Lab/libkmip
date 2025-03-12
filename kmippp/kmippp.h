@@ -22,6 +22,7 @@ public:
   using id_t   = std::string;
   using ids_t  = std::vector<std::string>;
   using name_t = std::string;
+  using secret_t = std::string;
 
   context (std::string server_address, std::string server_port, std::string client_cert_fn, std::string client_key_fn,
            std::string ca_cert_fn);
@@ -59,6 +60,21 @@ public:
   // KMIP::locate operation, retrieve all symmetric keys
   // note: name can be empty, and will retrieve all keys
   ids_t op_all ();
+
+  // KMIP::revoke operation, revoke activated or not activated key. Deactivates
+  // active key
+  bool op_revoke (id_t id, int reason, name_t message, time_t occurrence_time);
+
+  // KMIP::register_secret operation, stores an existing symmetric key on the
+  // serve Secret type: 1- password, 2 -Seed
+  id_t op_register_secret (name_t name, name_t group, name_t secret, int secret_data_type);
+
+  // KMIP::get_secret operation, retrieve a secret by id
+  name_t op_get_secret (id_t id);
+
+  // get human-readable status and message from the last KMIP operation
+  // Attention! It is not thread-safe because kmip_bio level uses global variable
+  std::string get_last_result ();
 
 private:
   SSL_CTX *ctx_ = nullptr;
