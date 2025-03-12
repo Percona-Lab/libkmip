@@ -19,9 +19,15 @@ target_include_directories(
   $<BUILD_INTERFACE:${KMIP_SOURCE_DIR}/libkmip/include/>
   $<INSTALL_INTERFACE:include>
   )
+
+set(KMIP_PUBLIC_HEADERS
+        "../include/kmip.h"
+        "../include/kmip_locate.h"
+        "../include/kmip_bio.h"
+)
+
 set_target_properties(
-  kmip PROPERTIES PUBLIC_HEADER
-  "../include/kmip.h"
+    kmip PROPERTIES PUBLIC_HEADER "${KMIP_PUBLIC_HEADERS}"
   )
 
 
