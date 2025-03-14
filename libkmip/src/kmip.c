@@ -1961,6 +1961,30 @@ kmip_print_error_string (FILE *f, int value)
       }
       break;
 
+    case -19:
+      {
+        fprintf (f, "KMIP_INVALID_ENCODING");
+      }
+      break;
+
+    case -20:
+      {
+        fprintf (f, "KMIP_INVALID_FIELD");
+      }
+      break;
+
+    case -21:
+      {
+        fprintf (f, "KMIP_INVALID_LENGTH");
+      }
+      break;
+
+    case -22:
+      {
+        fprintf (f, "KMIP_ERROR_SERVERSIDE");
+      }
+      break;
+
     default:
       {
         fprintf (f, "Unrecognized Error Code");
@@ -14792,6 +14816,13 @@ kmip_decode_response_batch_item (KMIP *ctx, ResponseBatchItem *value)
       result = kmip_decode_byte_string (ctx, KMIP_TAG_ASYNCHRONOUS_CORRELATION_VALUE,
                                         value->asynchronous_correlation_value);
       CHECK_RESULT (ctx, result);
+    }
+  //In case of some error reported by server we should not decode response payload because it is empty
+  if (value->result_status == KMIP_STATUS_OPERATION_FAILED)
+    {
+      kmip_set_error_message(ctx, value->result_message->value);
+      kmip_push_error_frame (ctx, __func__, __LINE__);
+      return KMIP_ERROR_SERVERSIDE;
     }
 
   /* NOTE (ph) Omitting the tag check is a good way to test error output. */

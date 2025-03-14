@@ -226,13 +226,13 @@ use_mid_level_api (char *server_address, char *server_port, char *client_certifi
   printf ("\n");
   if (result < 0)
     {
-      printf ("An error occurred while creating the symmetric key.");
-      printf ("Error Code: %d\n", result);
-      printf ("Error Name: ");
+      fprintf (stderr, "An error occurred while getting the symmetric key. ");
+      fprintf (stderr, "Error Code: %d\n", result);
+      fprintf (stderr, "Error Name: ");
       kmip_print_error_string (stderr, result);
-      printf ("\n");
-      printf ("Context Error: %s\n", kmip_context.error_message);
-      printf ("Stack trace:\n");
+      fprintf (stderr, "\n");
+      fprintf (stderr, "Context Error: %s\n", kmip_context.error_message);
+      fprintf (stderr, "Stack trace:\n");
       kmip_print_stack_trace (stderr, &kmip_context);
     }
   else if (result >= 0)
