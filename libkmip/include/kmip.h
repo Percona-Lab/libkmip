@@ -75,6 +75,7 @@ typedef int64 intptr;
 #define KMIP_INVALID_ENCODING        (-19)
 #define KMIP_INVALID_FIELD           (-20)
 #define KMIP_INVALID_LENGTH          (-21)
+#define KMIP_ERROR_SERVERSIDE        (-22)
 
   /*
   Enumerations
