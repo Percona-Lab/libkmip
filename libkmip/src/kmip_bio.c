@@ -21,6 +21,15 @@
 OpenSSH BIO API
 */
 
+static inline void
+kmip_free_encoding_and_ctx(KMIP *ctx, uint8 **encoding, size_t buffer_total_size)
+{
+  kmip_free_buffer(ctx, *encoding, buffer_total_size);
+  *encoding = NULL;
+  kmip_set_buffer(ctx, NULL, 0);
+  kmip_destroy(ctx);
+}
+
 int
 kmip_bio_locate (BIO *bio, Attribute *attribs, size_t attrib_count, LocateResponse *locate_result, int max_items,
                  int offset)
@@ -113,19 +122,15 @@ kmip_bio_create_symmetric_key (BIO *bio, TemplateAttribute *template_attribute, 
 
   if (encode_result != KMIP_OK)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (encode_result);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(encode_result);
     }
 
   int sent = BIO_write (bio, ctx.buffer, ctx.index - ctx.buffer);
   if (sent != ctx.index - ctx.buffer)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_free_buffer (&ctx, encoding, buffer_total_size);
@@ -148,10 +153,8 @@ kmip_bio_create_symmetric_key (BIO *bio, TemplateAttribute *template_attribute, 
   int recv = BIO_read (bio, encoding, buffer_total_size);
   if ((size_t)recv != buffer_total_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_total_size);
@@ -162,10 +165,8 @@ kmip_bio_create_symmetric_key (BIO *bio, TemplateAttribute *template_attribute, 
   kmip_rewind (&ctx);
   if (length > ctx.max_message_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_EXCEED_MAX_MESSAGE_SIZE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_EXCEED_MAX_MESSAGE_SIZE);
     }
 
   kmip_set_buffer (&ctx, NULL, 0);
@@ -180,10 +181,8 @@ kmip_bio_create_symmetric_key (BIO *bio, TemplateAttribute *template_attribute, 
   recv = BIO_read (bio, encoding + 8, length);
   if (recv != length)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_block_size);
@@ -193,20 +192,16 @@ kmip_bio_create_symmetric_key (BIO *bio, TemplateAttribute *template_attribute, 
   int             decode_result = kmip_decode_response_message (&ctx, &resp_m);
   if (decode_result != KMIP_OK)
     {
-      kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (decode_result);
+      kmip_free_response_message(&ctx, &resp_m);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(decode_result);
     }
 
   if (resp_m.batch_count != 1 || resp_m.batch_items == NULL)
     {
-      kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_MALFORMED_RESPONSE);
+      kmip_free_response_message(&ctx, &resp_m);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_MALFORMED_RESPONSE);
     }
 
   ResponseBatchItem  resp_item = resp_m.batch_items[0];
@@ -215,10 +210,7 @@ kmip_bio_create_symmetric_key (BIO *bio, TemplateAttribute *template_attribute, 
   if (result != KMIP_STATUS_SUCCESS)
     {
       kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_set_buffer (&ctx, NULL, 0);
-      kmip_destroy (&ctx);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
       return (result);
     }
 
@@ -232,10 +224,7 @@ kmip_bio_create_symmetric_key (BIO *bio, TemplateAttribute *template_attribute, 
   if (result_id == NULL)
     {
       kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_set_buffer (&ctx, NULL, 0);
-      kmip_destroy (&ctx);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
       return (KMIP_MEMORY_ALLOC_FAILED);
     }
   *id_size = unique_identifier->size;
@@ -246,10 +235,7 @@ kmip_bio_create_symmetric_key (BIO *bio, TemplateAttribute *template_attribute, 
   /* Clean up the response message, the encoding buffer, and the KMIP */
   /* context. */
   kmip_free_response_message (&ctx, &resp_m);
-  kmip_free_buffer (&ctx, encoding, buffer_total_size);
-  encoding = NULL;
-  kmip_set_buffer (&ctx, NULL, 0);
-  kmip_destroy (&ctx);
+  kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
 
   return (result);
 }
@@ -348,19 +334,15 @@ kmip_bio_register_symmetric_key (BIO *bio, TemplateAttribute *template_attribute
 
   if (encode_result != KMIP_OK)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (encode_result);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(encode_result);
     }
 
   int sent = BIO_write (bio, ctx.buffer, ctx.index - ctx.buffer);
   if (sent != ctx.index - ctx.buffer)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_free_buffer (&ctx, encoding, buffer_total_size);
@@ -383,10 +365,8 @@ kmip_bio_register_symmetric_key (BIO *bio, TemplateAttribute *template_attribute
   int recv = BIO_read (bio, encoding, buffer_total_size);
   if ((size_t)recv != buffer_total_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_total_size);
@@ -397,10 +377,8 @@ kmip_bio_register_symmetric_key (BIO *bio, TemplateAttribute *template_attribute
   kmip_rewind (&ctx);
   if (length > ctx.max_message_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_EXCEED_MAX_MESSAGE_SIZE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_EXCEED_MAX_MESSAGE_SIZE);
     }
 
   kmip_set_buffer (&ctx, NULL, 0);
@@ -415,10 +393,8 @@ kmip_bio_register_symmetric_key (BIO *bio, TemplateAttribute *template_attribute
   recv = BIO_read (bio, encoding + 8, length);
   if (recv != length)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_block_size);
@@ -428,20 +404,16 @@ kmip_bio_register_symmetric_key (BIO *bio, TemplateAttribute *template_attribute
   int             decode_result = kmip_decode_response_message (&ctx, &resp_m);
   if (decode_result != KMIP_OK)
     {
-      kmip_free_response_message (&ctx, &resp_m);
-      // kmip_free_buffer(&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (decode_result);
+      kmip_free_response_message(&ctx, &resp_m);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(decode_result);
     }
 
   if (resp_m.batch_count != 1 || resp_m.batch_items == NULL)
     {
-      kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_MALFORMED_RESPONSE);
+      kmip_free_response_message(&ctx, &resp_m);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_MALFORMED_RESPONSE);
     }
 
   ResponseBatchItem  resp_item = resp_m.batch_items[0];
@@ -450,10 +422,7 @@ kmip_bio_register_symmetric_key (BIO *bio, TemplateAttribute *template_attribute
   if (result != KMIP_STATUS_SUCCESS)
     {
       kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_set_buffer (&ctx, NULL, 0);
-      kmip_destroy (&ctx);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
       return (result);
     }
 
@@ -467,10 +436,7 @@ kmip_bio_register_symmetric_key (BIO *bio, TemplateAttribute *template_attribute
   if (result_id == NULL)
     {
       kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_set_buffer (&ctx, NULL, 0);
-      kmip_destroy (&ctx);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
       return (KMIP_MEMORY_ALLOC_FAILED);
     }
   *id_size = unique_identifier->size;
@@ -481,10 +447,7 @@ kmip_bio_register_symmetric_key (BIO *bio, TemplateAttribute *template_attribute
   /* Clean up the response message, the encoding buffer, and the KMIP */
   /* context. */
   kmip_free_response_message (&ctx, &resp_m);
-  kmip_free_buffer (&ctx, encoding, buffer_total_size);
-  encoding = NULL;
-  kmip_set_buffer (&ctx, NULL, 0);
-  kmip_destroy (&ctx);
+  kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
 
   return (result);
 }
@@ -567,19 +530,15 @@ kmip_bio_destroy_symmetric_key (BIO *bio, char *uuid, int uuid_size)
 
   if (encode_result != KMIP_OK)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (encode_result);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(encode_result);
     }
 
   int sent = BIO_write (bio, ctx.buffer, ctx.index - ctx.buffer);
   if (sent != ctx.index - ctx.buffer)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_free_buffer (&ctx, encoding, buffer_total_size);
@@ -602,10 +561,8 @@ kmip_bio_destroy_symmetric_key (BIO *bio, char *uuid, int uuid_size)
   int recv = BIO_read (bio, encoding, buffer_total_size);
   if ((size_t)recv != buffer_total_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_total_size);
@@ -616,20 +573,16 @@ kmip_bio_destroy_symmetric_key (BIO *bio, char *uuid, int uuid_size)
   kmip_rewind (&ctx);
   if (length > ctx.max_message_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_EXCEED_MAX_MESSAGE_SIZE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_EXCEED_MAX_MESSAGE_SIZE);
     }
 
   kmip_set_buffer (&ctx, NULL, 0);
   uint8 *extended = ctx.realloc_func (ctx.state, encoding, buffer_total_size + length);
   if (extended == NULL)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_MEMORY_ALLOC_FAILED);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_MEMORY_ALLOC_FAILED);
     }
   else
     {
@@ -645,10 +598,8 @@ kmip_bio_destroy_symmetric_key (BIO *bio, char *uuid, int uuid_size)
   recv = BIO_read (bio, encoding + 8, length);
   if (recv != length)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_block_size);
@@ -676,20 +627,16 @@ kmip_bio_destroy_symmetric_key (BIO *bio, char *uuid, int uuid_size)
     }
   if (decode_result != KMIP_OK)
     {
-      kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (decode_result);
+      kmip_free_response_message(&ctx, &resp_m);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(decode_result);
     }
 
   if (resp_m.batch_count != 1 || resp_m.batch_items == NULL)
     {
-      kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_MALFORMED_RESPONSE);
+      kmip_free_response_message(&ctx, &resp_m);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_MALFORMED_RESPONSE);
     }
 
   ResponseBatchItem  resp_item = resp_m.batch_items[0];
@@ -698,10 +645,7 @@ kmip_bio_destroy_symmetric_key (BIO *bio, char *uuid, int uuid_size)
   /* Clean up the response message, the encoding buffer, and the KMIP */
   /* context. */
   kmip_free_response_message (&ctx, &resp_m);
-  kmip_free_buffer (&ctx, encoding, buffer_total_size);
-  encoding = NULL;
-  kmip_set_buffer (&ctx, NULL, 0);
-  kmip_destroy (&ctx);
+  kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
 
   return (result);
 }
@@ -784,19 +728,15 @@ kmip_bio_activate_symmetric_key (BIO *bio, char *id, int id_size)
 
   if (encode_result != KMIP_OK)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (encode_result);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(encode_result);
     }
 
   int sent = BIO_write (bio, ctx.buffer, ctx.index - ctx.buffer);
   if (sent != ctx.index - ctx.buffer)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_free_buffer (&ctx, encoding, buffer_total_size);
@@ -819,10 +759,8 @@ kmip_bio_activate_symmetric_key (BIO *bio, char *id, int id_size)
   int recv = BIO_read (bio, encoding, buffer_total_size);
   if ((size_t)recv != buffer_total_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_total_size);
@@ -833,10 +771,8 @@ kmip_bio_activate_symmetric_key (BIO *bio, char *id, int id_size)
   kmip_rewind (&ctx);
   if (length > ctx.max_message_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_EXCEED_MAX_MESSAGE_SIZE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_EXCEED_MAX_MESSAGE_SIZE);
     }
 
   kmip_set_buffer (&ctx, NULL, 0);
@@ -853,10 +789,8 @@ kmip_bio_activate_symmetric_key (BIO *bio, char *id, int id_size)
   recv = BIO_read (bio, encoding + 8, length);
   if (recv != length)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_block_size);
@@ -865,11 +799,9 @@ kmip_bio_activate_symmetric_key (BIO *bio, char *id, int id_size)
   int             decode_result = kmip_decode_response_message (&ctx, &resp_m);
   if (decode_result != KMIP_OK)
     {
-      kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (decode_result);
+      kmip_free_response_message(&ctx, &resp_m);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(decode_result);
     }
 
   kmip_free_buffer (&ctx, encoding, buffer_total_size);
@@ -906,10 +838,7 @@ kmip_bio_activate_symmetric_key (BIO *bio, char *id, int id_size)
   /* Clean up the response message, the encoding buffer, and the KMIP */
   /* context. */
   kmip_free_response_message (&ctx, &resp_m);
-  kmip_free_buffer (&ctx, encoding, buffer_total_size);
-  encoding = NULL;
-  kmip_set_buffer (&ctx, NULL, 0);
-  kmip_destroy (&ctx);
+  kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
 
   return KMIP_OK;
 }
@@ -992,19 +921,15 @@ kmip_bio_get_symmetric_key (BIO *bio, char *id, int id_size, char **key, int *ke
 
   if (encode_result != KMIP_OK)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (encode_result);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(encode_result);
     }
 
   int sent = BIO_write (bio, ctx.buffer, ctx.index - ctx.buffer);
   if (sent != ctx.index - ctx.buffer)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_free_buffer (&ctx, encoding, buffer_total_size);
@@ -1027,10 +952,8 @@ kmip_bio_get_symmetric_key (BIO *bio, char *id, int id_size, char **key, int *ke
   int recv = BIO_read (bio, encoding, buffer_total_size);
   if ((size_t)recv != buffer_total_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_total_size);
@@ -1041,10 +964,8 @@ kmip_bio_get_symmetric_key (BIO *bio, char *id, int id_size, char **key, int *ke
   kmip_rewind (&ctx);
   if (length > ctx.max_message_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_EXCEED_MAX_MESSAGE_SIZE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_EXCEED_MAX_MESSAGE_SIZE);
     }
 
   kmip_set_buffer (&ctx, NULL, 0);
@@ -1061,10 +982,8 @@ kmip_bio_get_symmetric_key (BIO *bio, char *id, int id_size, char **key, int *ke
   recv = BIO_read (bio, encoding + 8, length);
   if (recv != length)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_block_size);
@@ -1074,11 +993,9 @@ kmip_bio_get_symmetric_key (BIO *bio, char *id, int id_size, char **key, int *ke
   int             decode_result = kmip_decode_response_message (&ctx, &resp_m);
   if (decode_result != KMIP_OK)
     {
-      kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (decode_result);
+      kmip_free_response_message(&ctx, &resp_m);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(decode_result);
     }
 
   kmip_free_buffer (&ctx, encoding, buffer_total_size);
@@ -1130,10 +1047,7 @@ kmip_bio_get_symmetric_key (BIO *bio, char *id, int id_size, char **key, int *ke
   if (result_key == NULL)
     {
       kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_set_buffer (&ctx, NULL, 0);
-      kmip_destroy (&ctx);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
       return (KMIP_MEMORY_ALLOC_FAILED);
     }
   *key_size = material->size;
@@ -1146,10 +1060,7 @@ kmip_bio_get_symmetric_key (BIO *bio, char *id, int id_size, char **key, int *ke
   /* Clean up the response message, the encoding buffer, and the KMIP */
   /* context. */
   kmip_free_response_message (&ctx, &resp_m);
-  kmip_free_buffer (&ctx, encoding, buffer_total_size);
-  encoding = NULL;
-  kmip_set_buffer (&ctx, NULL, 0);
-  kmip_destroy (&ctx);
+  kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
 
   return (result);
 }
@@ -2349,19 +2260,15 @@ kmip_bio_get_name_attribute (BIO *bio, char *id, int id_size, char **name, int *
 
   if (encode_result != KMIP_OK)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (encode_result);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(encode_result);
     }
 
   int sent = BIO_write (bio, ctx.buffer, ctx.index - ctx.buffer);
   if (sent != ctx.index - ctx.buffer)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_free_buffer (&ctx, encoding, buffer_total_size);
@@ -2384,10 +2291,8 @@ kmip_bio_get_name_attribute (BIO *bio, char *id, int id_size, char **name, int *
   int recv = BIO_read (bio, encoding, buffer_total_size);
   if ((size_t)recv != buffer_total_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_total_size);
@@ -2398,10 +2303,8 @@ kmip_bio_get_name_attribute (BIO *bio, char *id, int id_size, char **name, int *
   kmip_rewind (&ctx);
   if (length > ctx.max_message_size)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_EXCEED_MAX_MESSAGE_SIZE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_EXCEED_MAX_MESSAGE_SIZE);
     }
 
   kmip_set_buffer (&ctx, NULL, 0);
@@ -2418,10 +2321,8 @@ kmip_bio_get_name_attribute (BIO *bio, char *id, int id_size, char **name, int *
   recv = BIO_read (bio, encoding + 8, length);
   if (recv != length)
     {
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      encoding = NULL;
-      kmip_destroy (&ctx);
-      return (KMIP_IO_FAILURE);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
+      return(KMIP_IO_FAILURE);
     }
 
   kmip_set_buffer (&ctx, encoding, buffer_block_size);
@@ -2432,10 +2333,7 @@ kmip_bio_get_name_attribute (BIO *bio, char *id, int id_size, char **name, int *
   if (decode_result != KMIP_OK)
     {
       kmip_free_response_message (&ctx, &resp_m);
-      kmip_free_buffer (&ctx, encoding, buffer_total_size);
-      kmip_set_buffer (&ctx, NULL, 0);
-      encoding = NULL;
-      kmip_destroy (&ctx);
+      kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
       return (decode_result);
     }
 
@@ -2488,10 +2386,7 @@ kmip_bio_get_name_attribute (BIO *bio, char *id, int id_size, char **name, int *
   /* Clean up the response message, the encoding buffer, and the KMIP */
   /* context. */
   kmip_free_response_message (&ctx, &resp_m);
-  kmip_free_buffer (&ctx, encoding, buffer_total_size);
-  encoding = NULL;
-  kmip_set_buffer (&ctx, NULL, 0);
-  kmip_destroy (&ctx);
+  kmip_free_encoding_and_ctx(&ctx, &encoding, buffer_total_size);
 
   return (result);
 }
