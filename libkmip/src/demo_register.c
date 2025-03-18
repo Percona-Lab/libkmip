@@ -192,13 +192,13 @@ use_low_level_api (const char *server_address, const char *server_port, const ch
   crp.object_type            = KMIP_OBJTYPE_SYMMETRIC_KEY;
   crp.template_attribute     = &ta;
 
-  crp.object.key_block = malloc (sizeof (KeyBlock));
+  crp.object.symmetric_key.key_block = malloc (sizeof (KeyBlock));
   // CHECK_NEW_MEMORY(ctx, crp.object.key_block, sizeof(KeyBlock), "KeyBlock
   // structure");
 
-  kmip_init_key_block (crp.object.key_block);
-  crp.object.key_block->key_format_type      = KMIP_KEYFORMAT_RAW;               // ??????
-  crp.object.key_block->key_compression_type = KMIP_KEYCOMP_EC_PUB_UNCOMPRESSED; // ??????
+  kmip_init_key_block (crp.object.symmetric_key.key_block);
+  crp.object.symmetric_key.key_block->key_format_type      = KMIP_KEYFORMAT_RAW;               // ??????
+  crp.object.symmetric_key.key_block->key_compression_type = KMIP_KEYCOMP_EC_PUB_UNCOMPRESSED; // ??????
   unsigned char key[]
       = { 0xF8, 0x49, 0x8C, 0xD5, 0xFA, 0x16, 0x53, 0xB4, 0xD8, 0xC5, 0x3E, 0x06, 0x0D, 0x95, 0xC5, 0xB0,
           0xEB, 0x07, 0x72, 0x5C, 0x25, 0x85, 0x31, 0x65, 0x5D, 0x47, 0x06, 0x4E, 0x42, 0xED, 0xED, 0x8C };
@@ -209,10 +209,10 @@ use_low_level_api (const char *server_address, const char *server_port, const ch
   kv.key_material                               = &bs;
   kv.attribute_count                            = 0;
   kv.attributes                                 = NULL;
-  crp.object.key_block->key_value               = &kv;                   // ??????
-  crp.object.key_block->key_value_type          = KMIP_TYPE_BYTE_STRING; // ??????
-  crp.object.key_block->cryptographic_algorithm = KMIP_CRYPTOALG_AES;    // ??????
-  crp.object.key_block->cryptographic_length    = 256;                   // key length
+  crp.object.symmetric_key.key_block->key_value               = &kv;                   // ??????
+  crp.object.symmetric_key.key_block->key_value_type          = KMIP_TYPE_BYTE_STRING; // ??????
+  crp.object.symmetric_key.key_block->cryptographic_algorithm = KMIP_CRYPTOALG_AES;    // ??????
+  crp.object.symmetric_key.key_block->cryptographic_length    = 256;                   // key length
 
   RequestBatchItem rbi = { 0 };
   kmip_init_request_batch_item (&rbi);

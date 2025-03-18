@@ -75,7 +75,6 @@ typedef int64 intptr;
 #define KMIP_INVALID_ENCODING        (-19)
 #define KMIP_INVALID_FIELD           (-20)
 #define KMIP_INVALID_LENGTH          (-21)
-#define KMIP_ERROR_SERVERSIDE        (-22)
 
   /*
   Enumerations
@@ -667,6 +666,7 @@ typedef int64 intptr;
     KMIP_TAG_BATCH_ITEM                       = 0x42000F,
     KMIP_TAG_BATCH_ORDER_OPTION               = 0x420010,
     KMIP_TAG_BLOCK_CIPHER_MODE                = 0x420011,
+    KMIP_TAG_COMPROMISE_OCCURRANCE_DATE       = 0x420021,
     KMIP_TAG_CREDENTIAL                       = 0x420023,
     KMIP_TAG_CREDENTIAL_TYPE                  = 0x420024,
     KMIP_TAG_CREDENTIAL_VALUE                 = 0x420025,
@@ -715,7 +715,13 @@ typedef int64 intptr;
     KMIP_TAG_RESULT_MESSAGE                   = 0x42007D,
     KMIP_TAG_RESULT_REASON                    = 0x42007E,
     KMIP_TAG_RESULT_STATUS                    = 0x42007F,
+    KMIP_TAG_REVOKATION_MESSAGE               = 0x420080,
+    KMIP_TAG_REVOCATION_REASON                = 0x420081,
+    KMIP_TAG_REVOCATION_REASON_CODE           = 0x420082,
     KMIP_TAG_KEY_ROLE_TYPE                    = 0x420083,
+    KMIP_TAG_SALT                             = 0x420084,
+    KMIP_TAG_SECRET_DATA                      = 0x420085,
+    KMIP_TAG_SECRET_DATA_TYPE                 = 0x420086,
     KMIP_TAG_SERVER_INFORMATION               = 0x420088,
     KMIP_TAG_STATE                            = 0x42008D,
     KMIP_TAG_STORAGE_STATUS_MASK              = 0x42008E,
@@ -808,6 +814,27 @@ typedef int64 intptr;
     KMIP_WRAP_ENCRYPT_MAC_SIGN = 0x03,
     KMIP_WRAP_MAC_SIGN_ENCRYPT = 0x04,
     KMIP_WRAP_TR31             = 0x05
+  };
+
+  enum revocation_reason_type
+  {
+    /* KMIP 1.0 */
+    UNSPECIFIED            = 0x01,
+    KEY_COMPROMISE         = 0x02,
+    CA_COMPROMISE          = 0x03,
+    AFFILIATION_CHANGED    = 0x04,
+    SUSPENDED              = 0x05,
+    CESSATION_OF_OPERATION = 0x06,
+    PRIVILEDGE_WITHDRAWN   = 0x07,
+    REVOCATION_EXTENSIONS  = 0x80000000
+  };
+
+  enum secret_data_type
+  {
+    /* KMIP 1.0 */
+    PASSWORD               = 0x01,
+    SEED                   = 0x02,
+    SECRET_DATA_EXTENSIONS = 0x80000000
   };
 
   /*
@@ -1029,6 +1056,18 @@ typedef int64 intptr;
     ByteString *nonce_value;
   } Nonce;
 
+  typedef struct revocation_reason
+  {
+    enum revocation_reason_type reason;
+    TextString                 *message;
+  } RevocationReason;
+
+  typedef struct secret_data
+  {
+    enum secret_data_type secret_data_type;
+    KeyBlock             *key_block;
+  } SecretData;
+
   /* Operation Payloads */
 
   typedef struct create_request_payload
@@ -1049,8 +1088,13 @@ typedef int64 intptr;
     /* KMIP 2.0 */
     Attributes             *attributes;
     ProtectionStorageMasks *protection_storage_masks;
-    // TODO: data could be many things. But we only care about symmetric keys
-    SymmetricKey            object; // both 1.0 and 2.0
+    union
+    {
+      SymmetricKey symmetric_key; // both 1.0 and 2.0
+      SecretData   secret_data;
+      PublicKey    public_key;
+      PrivateKey   private_key;
+    } object; // both 1.0 and 2.0
   } RegisterRequestPayload;
 
   typedef struct register_response_payload
@@ -1119,6 +1163,19 @@ typedef int64 intptr;
   {
     TextString *unique_identifier;
   } DestroyResponsePayload;
+
+  typedef struct revoke_request_payload
+  {
+    TextString       *unique_identifier;
+    RevocationReason *revocation_reason;
+    // optional time, see spec v 1.0 p 4.19
+    int64             compromise_occurence_date;
+  } RevokeRequestPayload;
+
+  typedef struct revoke_response_payload
+  {
+    TextString *unique_identifier;
+  } RevokeResponsePayload;
 
   /* Authentication Structures */
 
@@ -1697,6 +1754,8 @@ typedef int64 intptr;
   void kmip_free_operations (KMIP *ctx, Operations *value);
   void kmip_free_objects (KMIP *ctx, ObjectTypes *value);
   void kmip_free_server_information (KMIP *ctx, ServerInformation *value);
+  void kmip_free_revoke_request_payload (KMIP *, RevokeRequestPayload *);
+  void kmip_free_revoke_response_payload (KMIP *, RevokeResponsePayload *);
 
   /*
   Copying Functions
@@ -1833,6 +1892,8 @@ typedef int64 intptr;
   int kmip_encode_query_functions (KMIP *ctx, const Functions *);
   int kmip_encode_query_request_payload (KMIP *, const QueryRequestPayload *);
   int kmip_encode_query_response_payload (KMIP *, const QueryResponsePayload *);
+  int kmip_encode_revoke_request_payload (KMIP *, const RevokeRequestPayload *);
+  int kmip_encode_revoke_response_payload (KMIP *, const RevokeResponsePayload *);
 
   /*
   Decoding Functions
@@ -1899,6 +1960,8 @@ typedef int64 intptr;
   int kmip_decode_query_request_payload (KMIP *, QueryRequestPayload *);
   int kmip_decode_query_response_payload (KMIP *, QueryResponsePayload *);
   int kmip_decode_server_information (KMIP *ctx, ServerInformation *);
+  int kmip_decode_revoke_request_payload (KMIP *, RevokeRequestPayload *);
+  int kmip_decode_revoke_response_payload (KMIP *, RevokeResponsePayload *);
 
 #ifdef __cplusplus
 }
