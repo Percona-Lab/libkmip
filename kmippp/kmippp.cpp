@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <stdio.h>
 
 #include <stdexcept>
 
@@ -423,4 +424,107 @@ context::op_all ()
   return ret;
 }
 
+bool
+context::op_revoke (id_t id, int reason, name_t message, time_t occurrence_time)
+{
+  if (reason < 0)
+    return false;
+  const enum revocation_reason_type reason_enum = static_cast<revocation_reason_type> (reason);
+  int                               result      = kmip_bio_revoke (bio_, const_cast<char *> (id.c_str ()), id.length (),
+                                                                   const_cast<char *> (message.c_str ()), message.length (), reason_enum, occurrence_time);
+  return (result == KMIP_OK) ;
+}
+
+context::id_t
+context::op_register_secret (name_t name, name_t group, name_t secret, int secret_type)
+{
+  Attribute a[3];
+  for (int i = 0; i < 3; i++)
+  {
+    kmip_init_attribute (&a[i]);
+  }
+
+  int32 mask = KMIP_CRYPTOMASK_ENCRYPT | KMIP_CRYPTOMASK_DECRYPT | KMIP_CRYPTOMASK_EXPORT;
+  a[0].type  = KMIP_ATTR_CRYPTOGRAPHIC_USAGE_MASK;
+  a[0].value = &mask;
+
+  Name       ts;
+  TextString ts2 = { 0, 0 };
+  ts2.value      = const_cast<char *> (name.c_str ());
+  ts2.size       = kmip_strnlen_s (ts2.value, 250);
+  ts.value       = &ts2;
+  ts.type        = KMIP_NAME_UNINTERPRETED_TEXT_STRING;
+  a[1].type      = KMIP_ATTR_NAME;
+  a[1].value     = &ts;
+
+  TextString gs2 = { 0, 0 };
+  gs2.value      = const_cast<char *> (group.c_str ());
+  gs2.size       = kmip_strnlen_s (gs2.value, 250);
+  a[2].type      = KMIP_ATTR_OBJECT_GROUP;
+  a[2].value     = &gs2;
+
+  TemplateAttribute ta = { 0 };
+  ta.attributes        = a;
+  ta.attribute_count   = ARRAY_LENGTH (a);
+
+  int   id_max_len = 64;
+  char *idp        = nullptr;
+
+  secret_data_type sdt = static_cast<secret_data_type> (secret_type);
+
+  int result = kmip_bio_register_secret (bio_, &ta, reinterpret_cast<char *> (secret.data ()), secret.size (), &idp,
+                                         &id_max_len, sdt);
+
+  id_t ret;
+  if (idp != nullptr)
+  {
+    ret = id_t (idp, id_max_len);
+    free (idp);
+  }
+
+  return result == 0 ? ret : id_t("");
+}
+
+context::name_t
+context::op_get_secret (id_t id)
+{
+  int   secret_len = 0;
+  char *secret_p   = nullptr;
+  int   result     = kmip_bio_get_secret (bio_, const_cast<char *> (id.c_str ()), id.length (), &secret_p, &secret_len);
+
+  name_t secret;
+  if (secret_p != nullptr)
+  {
+    secret = name_t (secret_p, secret_len);
+    free (secret_p);
+  }
+
+  return result == 0 ? secret : name_t();
+}
+
+std::string
+context::get_last_result ()
+{
+  char *bp;
+  size_t size;
+
+  const LastResult *lr = kmip_get_last_result();
+  FILE             *mem_stream = open_memstream (&bp, &size);
+  fprintf(mem_stream, "Message: %s\nOperation: ",lr->result_message);
+  fflush (mem_stream);
+  kmip_print_operation_enum (mem_stream, lr->operation);
+  fflush (mem_stream);
+  fprintf(mem_stream, "; Result status: ");
+  fflush (mem_stream);
+  kmip_print_result_status_enum (mem_stream, lr->result_status);
+  fflush (mem_stream);
+  fprintf(mem_stream, "; Result reason: ");
+  fflush (mem_stream);
+  kmip_print_result_reason_enum (mem_stream, lr->result_reason);
+  fclose (mem_stream);
+  std::string res {bp, size};
+  free (bp);
+  kmip_clear_last_result ();
+  return res;
+}
 }

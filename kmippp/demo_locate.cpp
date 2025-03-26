@@ -10,7 +10,7 @@ main (int argc, char **argv)
   if (argc < 7)
     {
       std::cerr << "Usage: demo_locate <host> <port> <client_cert> "
-                   "<client_key> <server_cert> <key_id>"
+                   "<client_key> <server_cert> <key_name>"
                 << std::endl;
       return -1;
     }
@@ -18,6 +18,13 @@ main (int argc, char **argv)
   kmippp::context ctx (argv[1], argv[2], argv[3], argv[4], argv[5]);
 
   auto keys = ctx.op_locate (argv[6]);
+  if(keys.empty ())
+    {
+      std::cerr << "No Keys found" << std::endl;
+      std::cerr << ctx.get_last_result () << std::endl;
+      return 1;
+    }
+
   for (auto id : keys)
     {
       std::cout << "Key: " << id << " 0x";

@@ -19,6 +19,12 @@ main (int argc, char **argv)
 
   // auto keys = ctx.op_all();
   auto keys = ctx.op_locate_by_group ("TestGroup");
+  if(keys.empty ())
+    {
+      std::cerr << "No Keys found" << std::endl;
+      std::cerr << ctx.get_last_result () << std::endl;
+      return 1;
+    }
   for (auto id : keys)
     {
       std::cout << "Key: " << id << " ";
