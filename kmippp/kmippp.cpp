@@ -127,8 +127,12 @@ context::op_create (context::name_t name, context::name_t group)
 context::id_t
 context::op_register (context::name_t name, name_t group, key_t key)
 {
-  Attribute a[5];
-  for (int i = 0; i < 5; i++)
+  int attr_count;
+
+  group.empty()? attr_count = 4 : attr_count = 5;
+
+  Attribute a[attr_count];
+  for (int i = 0; i < attr_count; i++)
     {
       kmip_init_attribute (&a[i]);
     }
@@ -137,7 +141,7 @@ context::op_register (context::name_t name, name_t group, key_t key)
   a[0].type                              = KMIP_ATTR_CRYPTOGRAPHIC_ALGORITHM;
   a[0].value                             = &algorithm;
 
-  int32 length = key.size () * 8;
+  int32 length = key.size() * 8;
   a[1].type    = KMIP_ATTR_CRYPTOGRAPHIC_LENGTH;
   a[1].value   = &length;
 
@@ -154,15 +158,18 @@ context::op_register (context::name_t name, name_t group, key_t key)
   a[3].type      = KMIP_ATTR_NAME;
   a[3].value     = &ts;
 
-  TextString gs2 = { 0, 0 };
-  gs2.value      = const_cast<char *> (group.c_str ());
-  gs2.size       = kmip_strnlen_s (gs2.value, 250);
-  a[4].type      = KMIP_ATTR_OBJECT_GROUP;
-  a[4].value     = &gs2;
+  if (attr_count == 5)
+   {
+     TextString gs2 = { 0, 0 };
+     gs2.value      = const_cast<char *> (group.c_str ());
+     gs2.size       = kmip_strnlen_s (gs2.value, 250);
+     a[4].type      = KMIP_ATTR_OBJECT_GROUP;
+     a[4].value     = &gs2;
+   }
 
   TemplateAttribute ta = { 0 };
   ta.attributes        = a;
-  ta.attribute_count   = ARRAY_LENGTH (a);
+  ta.attribute_count   = attr_count;
 
   int   id_max_len = 64;
   char *idp        = nullptr;
@@ -438,7 +445,10 @@ context::op_revoke (id_t id, int reason, name_t message, time_t occurrence_time)
 context::id_t
 context::op_register_secret (name_t name, name_t group, name_t secret, int secret_type)
 {
-  Attribute a[3];
+  int attr_count;
+  group.empty ()? attr_count = 3 : attr_count = 4;
+
+  Attribute a[attr_count];
   for (int i = 0; i < 3; i++)
   {
     kmip_init_attribute (&a[i]);
@@ -457,15 +467,18 @@ context::op_register_secret (name_t name, name_t group, name_t secret, int secre
   a[1].type      = KMIP_ATTR_NAME;
   a[1].value     = &ts;
 
-  TextString gs2 = { 0, 0 };
-  gs2.value      = const_cast<char *> (group.c_str ());
-  gs2.size       = kmip_strnlen_s (gs2.value, 250);
-  a[2].type      = KMIP_ATTR_OBJECT_GROUP;
-  a[2].value     = &gs2;
+if (attr_count == 4 )
+  {
+    TextString gs2 = { 0, 0 };
+    gs2.value      = const_cast<char *> (group.c_str ());
+    gs2.size       = kmip_strnlen_s (gs2.value, 250);
+    a[2].type      = KMIP_ATTR_OBJECT_GROUP;
+    a[2].value     = &gs2;
+  }
 
   TemplateAttribute ta = { 0 };
   ta.attributes        = a;
-  ta.attribute_count   = ARRAY_LENGTH (a);
+  ta.attribute_count   = attr_count;
 
   int   id_max_len = 64;
   char *idp        = nullptr;
