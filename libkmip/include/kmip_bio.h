@@ -17,6 +17,8 @@ extern "C"
 {
 #endif
 
+  #define LAST_RESULT_MAX_MESSAGE_SIZE 512 //could be big with HasiCorp Vault
+
   typedef struct query_response  QueryResponse;
   typedef struct locate_response LocateResponse;
 
@@ -25,7 +27,7 @@ extern "C"
     enum operation     operation;
     enum result_status result_status;
     enum result_reason result_reason;
-    char               result_message[128];
+    char               result_message[LAST_RESULT_MAX_MESSAGE_SIZE];
   } LastResult;
 
   int               kmip_set_last_result (ResponseBatchItem *);

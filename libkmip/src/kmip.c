@@ -14993,7 +14993,7 @@ kmip_decode_response_batch_item (KMIP *ctx, ResponseBatchItem *value)
       //make 0-terminated string for kmip_set_error_message()
       char msg[value->result_message->size+1];
       kmip_copy_textstring(msg, value->result_message,value->result_message->size+1);
-      kmip_set_error_message(ctx, value->result_message->value);
+      kmip_set_error_message(ctx, msg);
       kmip_push_error_frame (ctx, __func__, __LINE__);
       return KMIP_OK;
     }
