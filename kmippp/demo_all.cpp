@@ -10,7 +10,7 @@ main (int argc, char **argv)
   if (argc < 6)
     {
       std::cerr << "Usage: demo_locate <host> <port> <client_cert> "
-                   "<client_key> <server_cert>"
+                   "<client_key> <server_cert> [group_name]"
                 << std::endl;
       return -1;
     }
@@ -18,7 +18,8 @@ main (int argc, char **argv)
   kmippp::context ctx (argv[1], argv[2], argv[3], argv[4], argv[5]);
 
   // auto keys = ctx.op_all();
-  auto keys = ctx.op_locate_by_group ("TestGroup");
+  const std::string group = argv[6]!=nullptr? argv[6] : "TestGroup";
+  auto keys = ctx.op_locate_by_group (group);
   if(keys.empty ())
     {
       std::cerr << "No Keys found" << std::endl;

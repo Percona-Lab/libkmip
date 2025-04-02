@@ -285,7 +285,8 @@ kmip_bio_register_symmetric_key (BIO *bio, TemplateAttribute *template_attribute
   crp.object.symmetric_key.key_block = &kb;
   kmip_init_key_block (crp.object.symmetric_key.key_block);
   crp.object.symmetric_key.key_block->key_format_type      = KMIP_KEYFORMAT_RAW;
-  crp.object.symmetric_key.key_block->key_compression_type = KMIP_KEYCOMP_EC_PUB_UNCOMPRESSED;
+  // key compression should be not set for HasiCorp Vault
+  // crp.object.symmetric_key.key_block->key_compression_type = KMIP_KEYCOMP_EC_PUB_UNCOMPRESSED;
 
   ByteString bs;
   bs.value = key;
