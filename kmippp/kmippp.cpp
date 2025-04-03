@@ -446,10 +446,10 @@ context::id_t
 context::op_register_secret (name_t name, name_t group, name_t secret, int secret_type)
 {
   int attr_count;
-  group.empty ()? attr_count = 3 : attr_count = 4;
+  group.empty () ? attr_count = 2 : attr_count = 3;
 
   Attribute a[attr_count];
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < attr_count; i++)
   {
     kmip_init_attribute (&a[i]);
   }
@@ -467,7 +467,7 @@ context::op_register_secret (name_t name, name_t group, name_t secret, int secre
   a[1].type      = KMIP_ATTR_NAME;
   a[1].value     = &ts;
 
-if (attr_count == 4 )
+if (attr_count == 3 )
   {
     TextString gs2 = { 0, 0 };
     gs2.value      = const_cast<char *> (group.c_str ());
