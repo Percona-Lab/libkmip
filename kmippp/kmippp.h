@@ -55,11 +55,15 @@ public:
 
   ids_t op_locate_by_group (name_t group);
 
+  ids_t op_locate_secrets_by_group (name_t group);
+
   bool op_destroy (id_t id);
 
   // KMIP::locate operation, retrieve all symmetric keys
   // note: name can be empty, and will retrieve all keys
   ids_t op_all ();
+
+  ids_t op_all_secrets ();
 
   // KMIP::revoke operation, revoke activated or not activated key. Deactivates
   // active key
