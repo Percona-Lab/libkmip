@@ -381,6 +381,67 @@ context::op_locate_by_group (context::name_t group)
 }
 
 context::ids_t
+context::op_locate_secrets_by_group (context::name_t group)
+{
+  Attribute a[2];
+  for (int i = 0; i < 2; i++)
+    {
+      kmip_init_attribute (&a[i]);
+    }
+
+  object_type loctype = KMIP_OBJTYPE_SECRET_DATA;
+  a[0].type           = KMIP_ATTR_OBJECT_TYPE;
+  a[0].value          = &loctype;
+
+  TextString ts2 = { 0, 0 };
+  ts2.value      = const_cast<char *> (group.c_str ());
+  ts2.size       = kmip_strnlen_s (ts2.value, 250);
+  a[1].type      = KMIP_ATTR_OBJECT_GROUP;
+  a[1].value     = &ts2;
+
+  TemplateAttribute ta = { 0 };
+  ta.attributes        = a;
+  ta.attribute_count   = ARRAY_LENGTH (a);
+
+  int   upto = 0;
+  int   all  = 1; // TMP
+  ids_t ret;
+
+  LocateResponse locate_result;
+
+  while (upto < all)
+    {
+      int result = kmip_bio_locate (bio_, a, 2, &locate_result, 16, upto);
+
+      if (result != 0)
+        {
+          return {};
+        }
+
+      for (int i = 0; i < locate_result.ids_size; ++i)
+        {
+          ret.push_back (locate_result.ids[i]);
+        }
+      if (locate_result.located_items != 0)
+        {
+          all = locate_result.located_items; // shouldn't change after its != 1
+        }
+      else
+        {
+          // Dummy server sometimes returns 0 for located_items
+          all += locate_result.ids_size;
+          if (locate_result.ids_size == 0)
+            {
+              --all;
+            }
+        }
+      upto += locate_result.ids_size;
+    }
+
+  return ret;
+}
+
+context::ids_t
 context::op_all ()
 {
   Attribute a[1];
@@ -390,6 +451,57 @@ context::op_all ()
     }
 
   object_type loctype = KMIP_OBJTYPE_SYMMETRIC_KEY;
+  a[0].type           = KMIP_ATTR_OBJECT_TYPE;
+  a[0].value          = &loctype;
+
+  LocateResponse locate_result;
+
+  int   upto = 0;
+  int   all  = 1; // TMP
+  ids_t ret;
+
+  while (upto < all)
+    {
+      int result = kmip_bio_locate (bio_, a, 1, &locate_result, 16, upto);
+
+      if (result != 0)
+        {
+          return {};
+        }
+
+      for (int i = 0; i < locate_result.ids_size; ++i)
+        {
+          ret.push_back (locate_result.ids[i]);
+        }
+      if (locate_result.located_items != 0)
+        {
+          all = locate_result.located_items; // shouldn't change after its != 1
+        }
+      else
+        {
+          // Dummy server sometimes returns 0 for located_items
+          all += locate_result.ids_size;
+          if (locate_result.ids_size == 0)
+            {
+              --all;
+            }
+        }
+      upto += locate_result.ids_size;
+    }
+
+  return ret;
+}
+
+context::ids_t
+context::op_all_secrets ()
+{
+  Attribute a[1];
+  for (int i = 0; i < 1; i++)
+    {
+      kmip_init_attribute (&a[i]);
+    }
+
+  object_type loctype = KMIP_OBJTYPE_SECRET_DATA;
   a[0].type           = KMIP_ATTR_OBJECT_TYPE;
   a[0].value          = &loctype;
 
