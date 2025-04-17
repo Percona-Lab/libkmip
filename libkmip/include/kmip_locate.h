@@ -46,13 +46,13 @@ match.
 /*
 
 When the Object Group attribute and the Object Group Member flag are specified
-in the request, and the value specified for Object Group Member is ‘Group
-Member Fresh’, matching candidate objects SHALL be fresh objects from the
+in the request, and the value specified for Object Group Member is ï¿½Group
+Member Freshï¿½, matching candidate objects SHALL be fresh objects from the
 object group.
 
 If there are no more fresh objects in the group, the server MAY choose to
 generate a new object on-the-fly, based on server policy. If the value
-specified for Object Group Member is ‘Group Member Default’, the server locates
+specified for Object Group Member is ï¿½Group Member Defaultï¿½, the server locates
 the default object as defined by server policy.
 
 
