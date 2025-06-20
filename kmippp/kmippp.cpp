@@ -566,7 +566,7 @@ context::op_register_secret (name_t name, name_t group, name_t secret, int secre
     kmip_init_attribute (&a[i]);
   }
 
-  int32 mask = KMIP_CRYPTOMASK_ENCRYPT | KMIP_CRYPTOMASK_DECRYPT | KMIP_CRYPTOMASK_EXPORT;
+  int32 mask = KMIP_CRYPTOMASK_DERIVE_KEY | KMIP_CRYPTOMASK_EXPORT;
   a[0].type  = KMIP_ATTR_CRYPTOGRAPHIC_USAGE_MASK;
   a[0].value = &mask;
 
