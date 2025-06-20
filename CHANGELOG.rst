@@ -1,8 +1,17 @@
 =========
 Changelog
 =========
+0.3.3 - July 2025 
+~~~~~~~~~~~~~~~~~~~~~~
+* Fix of register secret operation usage mask, Fortanix server
 
-.. _v0.3.0:
+0.3.2: -- May 2025
+~~~~~~~~~~~~~~~~~~~~~
+0.3.1:
+0.3.0:
+
+* locate_secrets_* operations added to kmippp
+* Fix of key registration with HashiCorp Vault
 
 0.3.0 - March 19, 2025
 ~~~~~~~~~~~~~~~~~~~~~~~
