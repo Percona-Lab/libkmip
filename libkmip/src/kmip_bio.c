@@ -3093,7 +3093,8 @@ kmip_bio_get_secret (BIO *bio, char *id, int id_size, char **key, int *key_size)
 
   SecretData *secret = (SecretData *)pld->object;
   KeyBlock   *block  = secret->key_block;
-  if ((block->key_format_type != KMIP_KEYFORMAT_OPAQUE) || (block->key_wrapping_data != NULL))
+  if ( ! (block->key_format_type == KMIP_KEYFORMAT_OPAQUE || block->key_format_type == KMIP_KEYFORMAT_RAW)
+       || (block->key_wrapping_data != NULL))
     {
       kmip_free_response_message (&ctx, &resp_m);
       kmip_set_buffer (&ctx, NULL, 0);
