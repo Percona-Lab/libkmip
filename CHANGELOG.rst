@@ -3,7 +3,8 @@ Changelog
 =========
 0.3.3 - July 2025 
 ~~~~~~~~~~~~~~~~~~~~~~
-* Fix of register secret operation usage mask, Fortanix server
+* The register secret operation usage mask fixed, works Fortanix server
+* The get secret operation key format type fixed, works Fortanix server
 
 0.3.2: -- May 2025
 ~~~~~~~~~~~~~~~~~~~~~
