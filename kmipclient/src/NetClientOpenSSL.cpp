@@ -1,6 +1,19 @@
-//
-// Created by al on 17.03.25.
-//
+/* Copyright (c) 2025 Percona LLC and/or its affiliates. All rights reserved.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; version 2 of
+   the License.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #include "../include/NetClientOpenSSL.hpp"
 
@@ -13,27 +26,25 @@ namespace kmipclient
 {
 
 int
-check_connected (NetClientOpenSSL *nc)
+NetClientOpenSSL::check_connected ()
 {
-  if (nc->is_connected ())
+  if (is_connected ())
     {
       return 0;
     }
   else
     {
-      return nc->connect ();
+      return connect ();
     }
 }
 
 NetClientOpenSSL::NetClientOpenSSL (const char *host, const char *port, const char *clientCertificateFn,
-                                    const char *clientKeyFn,
-                                    const char *serverCaCertFn, // should it be sever's CA certificate?
-                                    int         timeout_ms)
+                                    const char *clientKeyFn, const char *serverCaCertFn, int timeout_ms)
     : NetClient (host, port, clientCertificateFn, clientKeyFn, serverCaCertFn, timeout_ms)
 {
 }
 
-NetClientOpenSSL::~NetClientOpenSSL () { close (); }
+NetClientOpenSSL::~NetClientOpenSSL () { NetClientOpenSSL::close (); }
 
 int
 NetClientOpenSSL::connect ()
@@ -43,20 +54,20 @@ NetClientOpenSSL::connect ()
   if (SSL_CTX_use_certificate_file (ctx_, m_clientCertificateFn.c_str (), SSL_FILETYPE_PEM) != 1)
     {
       SSL_CTX_free (ctx_);
-      throw ErrorException (-1, "Loading the client certificate failed");
-      return -1;
+      ctx_ = nullptr;
+      throw ErrorException (-1, "Loading the client certificate failed from file: " + m_clientCertificateFn);
     }
   if (SSL_CTX_use_PrivateKey_file (ctx_, m_clientKeyFn.c_str (), SSL_FILETYPE_PEM) != 1)
     {
       SSL_CTX_free (ctx_);
-      throw ErrorException (-1, "Loading the client key failed");
-      return -1;
+      ctx_ = nullptr;
+      throw ErrorException (-1, "Loading the client key failed from file: " + m_clientKeyFn);
     }
   if (SSL_CTX_load_verify_locations (ctx_, m_serverCaCertificateFn.c_str (), nullptr) != 1)
     {
       SSL_CTX_free (ctx_);
-      throw ErrorException (-1, "Loading the CA certificate failed");
-      return -1;
+      ctx_ = nullptr;
+      throw ErrorException (-1, "Loading the server certificate failed from file: " + m_serverCaCertificateFn);
     }
 
   bio_ = BIO_new_ssl_connect (ctx_);
@@ -64,7 +75,6 @@ NetClientOpenSSL::connect ()
     {
       SSL_CTX_free (ctx_);
       throw ErrorException (-1, "BIO_new_ssl_connect failed");
-      return -1;
     }
 
   SSL *ssl = nullptr;
@@ -80,7 +90,6 @@ NetClientOpenSSL::connect ()
       bio_ = nullptr;
       ctx_ = nullptr;
       throw ErrorException (-1, "BIO_do_connect failed");
-      return -1;
     }
   m_isConnected = true;
   return 0;
@@ -105,7 +114,7 @@ NetClientOpenSSL::close ()
 int
 NetClientOpenSSL::send (const void *data, int dlen)
 {
-  if (check_connected (this) < 0)
+  if (check_connected () != 0)
     return -1;
   return BIO_write (bio_, data, dlen);
 }
@@ -113,7 +122,7 @@ NetClientOpenSSL::send (const void *data, int dlen)
 int
 NetClientOpenSSL::recv (void *data, int dlen)
 {
-  if (check_connected (this) < 0)
+  if (check_connected () != 0)
     return -1;
   return BIO_read (bio_, data, dlen);
 }

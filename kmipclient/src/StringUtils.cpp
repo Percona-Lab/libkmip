@@ -1,8 +1,23 @@
-//
-// Created by al on 02.04.25.
-//
+/* Copyright (c) 2025 Percona LLC and/or its affiliates. All rights reserved.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; version 2 of
+   the License.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #include "StringUtils.hpp"
+
+#include "kmip_exceptions.hpp"
 namespace kmipclient
 {
 
@@ -18,13 +33,12 @@ char2int (const char input)
   throw std::invalid_argument ("Invalid input string");
 }
 
-ve::expected<key_t, Error>
+key_t
 StringUtils::fromHex (const std::string &hex)
 {
   if (hex.empty () || hex.size () % 2 != 0)
     {
-      return Error{ -1, "Invalid hex string length." };
-      // return ve::unexpected<key_t, Error>(Error {-1, "Invalid hex string length."});
+      throw ErrorException{ "Invalid hex string length." };
     }
   key_t bytes;
   try
@@ -36,11 +50,60 @@ StringUtils::fromHex (const std::string &hex)
           bytes.push_back (byte);
         }
     }
-  catch (const std::invalid_argument &e)
+  catch ([[maybe_unused]] const std::invalid_argument &e)
     {
-      return Error{ -1, "Invalid hex string length." };
+      throw ErrorException{ "Invalid hex string length." };
     }
   return bytes;
+}
+
+// ... existing code ...
+#include <array>
+#include <string>
+#include <vector>
+
+std::vector<unsigned char>
+StringUtils::fromBase64 (const std::string &base64)
+{
+  static constexpr std::array<int, 256> lookup = [] () {
+    std::array<int, 256> l;
+    l.fill (-1);
+    for (int i = 0; i < 64; ++i)
+      l["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
+    return l;
+  }();
+
+  std::vector<unsigned char> out;
+  out.reserve ((base64.size () / 4) * 3);
+
+  int val = 0, valb = -8;
+  for (unsigned char c : base64)
+    {
+      if (lookup[c] == -1)
+        {
+          if (c == '=')
+            break;  // Padding reached
+          continue; // Skip whitespace or invalid chars
+        }
+      val = (val << 6) + lookup[c];
+      valb += 6;
+      if (valb >= 0)
+        {
+          out.push_back (static_cast<unsigned char> ((val >> valb) & 0xFF));
+          valb -= 8;
+        }
+    }
+  return out;
+}
+
+std::string
+StringUtils::fromKmipText (const TextString *ts)
+{
+  if (ts == nullptr || ts->size == 0)
+    {
+      return "";
+    }
+  return std::string{ ts->value, ts->size };
 }
 
 }

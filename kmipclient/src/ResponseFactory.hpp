@@ -1,13 +1,25 @@
-//
-// Created by al on 23.03.25.
-//
+/* Copyright (c) 2025 Percona LLC and/or its affiliates. All rights reserved.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; version 2 of
+   the License.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #ifndef RESPONSEFACTORY_HPP
 #define RESPONSEFACTORY_HPP
 
 #include "KmipCtx.hpp"
 #include "ResponseResult.hpp"
-#include "include/v_expected.hpp"
 #include "kmip.h"
 #include "kmip_exceptions.hpp"
 
@@ -22,7 +34,10 @@ struct OperationResult
   enum result_reason result_reason;
   char               result_message[LAST_RESULT_MAX_MESSAGE_SIZE];
 };
-
+/** Purpose of this class is to process multiple response batch items
+ *  and get results of a batch request items in proper form
+ *  TODO: work in progress
+ */
 class ResponseFactory
 {
 public:
@@ -34,31 +49,37 @@ public:
   ResponseFactory &operator= (const ResponseFactory &) = delete;
   ResponseFactory &operator= (ResponseFactory &&)      = delete;
 
-  ve::expected<id_t, Error>
+  id_t
   get_id (int item_idx)
   {
     return ResponseResult::get_id (get_response_items ()[item_idx]);
   }
 
-  ve::expected<Key, Error>
+  Key
   get_key (int item_idx)
   {
     return ResponseResult::get_key (get_response_items ()[item_idx]);
   }
 
-  ve::expected<Secret, Error>
+  Secret
   get_secret (int item_idx)
   {
     return ResponseResult::get_secret (get_response_items ()[item_idx]);
   }
 
-  ve::expected<name_t, Error>
+  attributes_t
   get_attributes (int item_idx)
   {
     return ResponseResult::get_attributes (get_response_items ()[item_idx]);
   }
 
-  ve::expected<ids_t, Error>
+  names_t
+  get_attribute_names (int item_idx)
+  {
+    return ResponseResult::get_attribute_list (get_response_items ()[item_idx]);
+  }
+
+  ids_t
   get_ids (int item_idx)
   {
     return ResponseResult::get_ids (get_response_items ()[item_idx]);
@@ -121,10 +142,15 @@ ResponseFactory::get_operation_result (const ResponseBatchItem &value)
   last_result.result_status = value.result_status;
   last_result.result_reason = value.result_reason;
   if (value.result_message)
-    kmip_copy_textstring (last_result.result_message, value.result_message, sizeof (last_result.result_message));
+    {
+      kmip_copy_textstring (last_result.result_message, value.result_message, sizeof (last_result.result_message));
+    }
   else
-    last_result.result_message[0] = 0;
-
+    {
+      last_result.result_message[0] = 0;
+    }
+  // we use C mem_stream instead of std::ostringstream because we have to use
+  // print functions from libkmip, which uses FILE*
   FILE *mem_stream = open_memstream (&bp, &size);
   fprintf (mem_stream, "Message: %s\nOperation: ", last_result.result_message);
   fflush (mem_stream);

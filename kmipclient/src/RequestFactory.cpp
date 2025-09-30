@@ -1,6 +1,19 @@
-//
-// Created by al on 21.03.25.
-//
+/* Copyright (c) 2025 Percona LLC and/or its affiliates. All rights reserved.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; version 2 of
+   the License.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #include "RequestFactory.hpp"
 
@@ -14,8 +27,9 @@ namespace kmipclient
 {
 
 void
-RequestFactory::create_get_rq (const id_t &id)
+RequestFactory::create_get_rq (KmipCtx &ctx, const id_t &id)
 {
+  KmipRequest rq (ctx);
 
   TextString uuid = {};
   uuid.size       = id.size ();
@@ -34,8 +48,10 @@ RequestFactory::create_get_rq (const id_t &id)
 }
 
 void
-RequestFactory::create_activate_rq (const id_t &id)
+RequestFactory::create_activate_rq (KmipCtx &ctx, const id_t &id)
 {
+  KmipRequest rq (ctx);
+
   TextString uuid = {};
   uuid.size       = id.size ();
   uuid.value      = const_cast<char *> (id.c_str ());
@@ -53,10 +69,10 @@ RequestFactory::create_activate_rq (const id_t &id)
 }
 
 void
-RequestFactory::create_create_aes_rq (const name_t &name, const name_t &group)
+RequestFactory::create_create_aes_rq (KmipCtx &ctx, const name_t &name, const name_t &group)
 {
-
-  Attribute a[5];
+  KmipRequest rq (ctx);
+  Attribute   a[5];
   for (auto &i : a)
     {
       kmip_init_attribute (&i);
@@ -83,7 +99,7 @@ RequestFactory::create_create_aes_rq (const name_t &name, const name_t &group)
   a[3].type      = KMIP_ATTR_NAME;
   a[3].value     = &ts;
 
-  TextString gs2 = { 0, 0 };
+  TextString gs2 = { nullptr, 0 };
   gs2.value      = const_cast<char *> (group.c_str ());
   gs2.size       = kmip_strnlen_s (gs2.value, 250);
   a[4].type      = KMIP_ATTR_OBJECT_GROUP;
@@ -92,9 +108,6 @@ RequestFactory::create_create_aes_rq (const name_t &name, const name_t &group)
   TemplateAttribute ta = {};
   ta.attributes        = a;
   ta.attribute_count   = std::size (a);
-
-  int   id_max_len = 64;
-  char *idp        = nullptr;
 
   CreateRequestPayload crp = {};
   crp.object_type          = KMIP_OBJTYPE_SYMMETRIC_KEY;
@@ -110,10 +123,10 @@ RequestFactory::create_create_aes_rq (const name_t &name, const name_t &group)
 }
 
 void
-RequestFactory::create_register_key_rq (const name_t &name, const name_t &group, Key &k)
+RequestFactory::create_register_key_rq (KmipCtx &ctx, const name_t &name, const name_t &group, const Key &key)
 {
-
-  int attr_count;
+  KmipRequest rq (ctx);
+  int         attr_count;
 
   group.empty () ? attr_count = 4 : attr_count = 5;
 
@@ -126,7 +139,6 @@ RequestFactory::create_register_key_rq (const name_t &name, const name_t &group,
   enum cryptographic_algorithm algorithm = KMIP_CRYPTOALG_AES;
   a[0].type                              = KMIP_ATTR_CRYPTOGRAPHIC_ALGORITHM;
   a[0].value                             = &algorithm;
-  key_t key                              = k.value ();
   int32 length                           = key.size () * 8;
   a[1].type                              = KMIP_ATTR_CRYPTOGRAPHIC_LENGTH;
   a[1].value                             = &length;
@@ -146,7 +158,7 @@ RequestFactory::create_register_key_rq (const name_t &name, const name_t &group,
 
   if (attr_count == 5)
     {
-      TextString gs2 = { 0, 0 };
+      TextString gs2 = { nullptr, 0 };
       gs2.value      = const_cast<char *> (group.c_str ());
       gs2.size       = kmip_strnlen_s (gs2.value, 250);
       a[4].type      = KMIP_ATTR_OBJECT_GROUP;
@@ -164,11 +176,9 @@ RequestFactory::create_register_key_rq (const name_t &name, const name_t &group,
   crp.object.symmetric_key.key_block = &kb;
   kmip_init_key_block (crp.object.symmetric_key.key_block);
   crp.object.symmetric_key.key_block->key_format_type = KMIP_KEYFORMAT_RAW;
-  // key compression should be not set for HasiCorp Vault
-  // crp.object.symmetric_key.key_block->key_compression_type = KMIP_KEYCOMP_EC_PUB_UNCOMPRESSED;
 
   ByteString bs;
-  bs.value = key.data ();
+  bs.value = key.value ().data ();
   bs.size  = key.size ();
 
   KeyValue kv;
@@ -191,9 +201,11 @@ RequestFactory::create_register_key_rq (const name_t &name, const name_t &group,
 }
 
 void
-RequestFactory::create_register_secret_rq (const name_t &name, const name_t &group, std::string &secret,
+RequestFactory::create_register_secret_rq (KmipCtx &ctx, const name_t &name, const name_t &group, std::string &secret,
                                            int secret_type)
 {
+  KmipRequest rq (ctx);
+
   int attr_count;
   group.empty () ? attr_count = 2 : attr_count = 3;
 
@@ -203,7 +215,7 @@ RequestFactory::create_register_secret_rq (const name_t &name, const name_t &gro
       kmip_init_attribute (&a[i]);
     }
 
-  int32 mask = KMIP_CRYPTOMASK_ENCRYPT | KMIP_CRYPTOMASK_DECRYPT | KMIP_CRYPTOMASK_EXPORT;
+  int32 mask = KMIP_CRYPTOMASK_DERIVE_KEY | KMIP_CRYPTOMASK_EXPORT;
   a[0].type  = KMIP_ATTR_CRYPTOGRAPHIC_USAGE_MASK;
   a[0].value = &mask;
 
@@ -228,9 +240,6 @@ RequestFactory::create_register_secret_rq (const name_t &name, const name_t &gro
   TemplateAttribute ta = {};
   ta.attributes        = a;
   ta.attribute_count   = attr_count;
-
-  int   id_max_len = 64;
-  char *idp        = nullptr;
 
   RegisterRequestPayload crp = {};
   crp.object_type            = KMIP_OBJTYPE_SECRET_DATA;
@@ -265,8 +274,11 @@ RequestFactory::create_register_secret_rq (const name_t &name, const name_t &gro
 }
 
 void
-RequestFactory::create_revoke_rq (const id_t &id, int reason, const name_t &message, time_t occurrence_time)
+RequestFactory::create_revoke_rq (KmipCtx &ctx, const id_t &id, int reason, const name_t &message,
+                                  time_t occurrence_time)
 {
+  KmipRequest rq (ctx);
+
   RevokeRequestPayload rrp = {};
 
   rrp.compromise_occurence_date = occurrence_time;
@@ -296,8 +308,10 @@ RequestFactory::create_revoke_rq (const id_t &id, int reason, const name_t &mess
 }
 
 void
-RequestFactory::create_destroy_rq (const id_t &id)
+RequestFactory::create_destroy_rq (KmipCtx &ctx, const id_t &id)
 {
+  KmipRequest rq (ctx);
+
   TextString idt = {};
   idt.value      = const_cast<char *> (id.c_str ());
   idt.size       = id.size ();
@@ -315,20 +329,34 @@ RequestFactory::create_destroy_rq (const id_t &id)
 }
 
 void
-RequestFactory::create_get_attribute_rq (const id_t &id, const std::string &attr_name)
+RequestFactory::create_get_attributes_rq (KmipCtx &ctx, const id_t &id, const std::vector<std::string> &attr_names)
 {
+  KmipRequest rq (ctx);
+
   TextString uuid = {};
   uuid.value      = const_cast<char *> (id.c_str ());
   uuid.size       = id.size ();
 
-  TextString an = {};
-  an.value      = const_cast<char *> (attr_name.c_str ());
-  ;
-  an.size = attr_name.size ();
-
   GetAttributeRequestPayload grp = {};
   grp.unique_identifier          = &uuid;
-  grp.attribute_name             = &an;
+
+  // create array of attributes
+  std::vector<TextString> a_names;
+  if (!attr_names.empty ())
+    {
+      for (const auto &attr_name : attr_names)
+        {
+          TextString an = {};
+          an.value      = const_cast<char *> (attr_name.c_str ());
+          an.size       = attr_name.size ();
+          a_names.push_back (an);
+        }
+      grp.attribute_name = &a_names[0];
+    }
+  else
+    {
+      grp.attribute_name = nullptr;
+    }
 
   RequestBatchItem rbi = {};
   kmip_init_request_batch_item (&rbi);
@@ -340,28 +368,50 @@ RequestFactory::create_get_attribute_rq (const id_t &id, const std::string &attr
 }
 
 void
-RequestFactory::create_locate_by_name_rq (const name_t &name, const kmip_entity_type type, const int max_items,
-                                          const int offset)
+RequestFactory::create_get_attribute_list_rq (KmipCtx &ctx, const id_t &id)
 {
-  create_locate_rq (false, name, type, max_items, offset);
+  KmipRequest rq (ctx);
+
+  TextString uuid = {};
+  uuid.value      = const_cast<char *> (id.c_str ());
+  uuid.size       = id.size ();
+
+  GetAttributeListRequestPayload grp = {};
+
+  RequestBatchItem rbi = {};
+  kmip_init_request_batch_item (&rbi);
+  rbi.operation       = KMIP_OP_GET_ATTRIBUTE_LIST;
+  rbi.request_payload = &grp;
+
+  rq.add_batch_item (&rbi);
+  rq.encode ();
 }
 
 void
-RequestFactory::create_locate_by_group_rq (const name_t &group_name, kmip_entity_type type, int max_items,
-                                           size_t offset)
+RequestFactory::create_locate_by_name_rq (KmipCtx &ctx, const name_t &name, enum object_type o_type,
+                                          const int max_items, const int offset)
 {
-  create_locate_rq (true, group_name, type, max_items, offset);
-}
-void
-RequestFactory::create_locate_all_rq (kmip_entity_type type, int max_items, int offset)
-{
-  create_locate_rq (true, "", type, max_items, offset);
+  create_locate_rq (ctx, false, name, o_type, max_items, offset);
 }
 
 void
-RequestFactory::create_locate_rq (bool is_group, const name_t &name, kmip_entity_type type, int max_items,
-                                  size_t offset)
+RequestFactory::create_locate_by_group_rq (KmipCtx &ctx, const name_t &group_name, enum object_type o_type,
+                                           int max_items, size_t offset)
 {
+  create_locate_rq (ctx, true, group_name, o_type, max_items, offset);
+}
+void
+RequestFactory::create_locate_all_rq (KmipCtx &ctx, enum object_type o_type, int max_items, int offset)
+{
+  create_locate_rq (ctx, true, "", o_type, max_items, offset);
+}
+
+void
+RequestFactory::create_locate_rq (KmipCtx &ctx, bool is_group, const name_t &name, enum object_type o_type,
+                                  int max_items, size_t offset)
+{
+  KmipRequest rq (ctx);
+
   size_t    attrib_count = name.empty () ? 1 : 2;
   Attribute a[attrib_count];
   for (int i = 0; i < attrib_count; i++)
@@ -369,30 +419,31 @@ RequestFactory::create_locate_rq (bool is_group, const name_t &name, kmip_entity
       kmip_init_attribute (&a[i]);
     }
 
-  object_type loctype = from_entity_type (type);
+  object_type loctype = o_type;
   a[0].type           = KMIP_ATTR_OBJECT_TYPE;
   a[0].value          = &loctype;
 
   if (attrib_count == 2)
     {
-      Name       ts;
-      TextString ts2 = {};
-      ts2.value      = const_cast<char *> (name.c_str ());
-      ts2.size       = kmip_strnlen_s (ts2.value, 250);
-      ts.value       = &ts2;
-      ts.type        = KMIP_NAME_UNINTERPRETED_TEXT_STRING;
+      Name       a_name;
+      TextString ts = {};
+      ts.value      = const_cast<char *> (name.c_str ());
+      ts.size       = kmip_strnlen_s (ts.value, 250);
+      a_name.value  = &ts;
+      a_name.type   = KMIP_NAME_UNINTERPRETED_TEXT_STRING;
       if (is_group)
         {
-          a[1].type = KMIP_ATTR_OBJECT_GROUP;
+          a[1].type  = KMIP_ATTR_OBJECT_GROUP;
+          a[1].value = &ts;
         }
       else
         {
-          a[1].type = KMIP_ATTR_NAME;
+          a[1].type  = KMIP_ATTR_NAME;
+          a[1].value = &a_name;
         }
-      a[1].value = &ts;
     }
 
-  // TODO: this is a piece of bad code! Handle it somehow. Why they need lists at all?
+  // TODO: this is a piece of bad code! Handle it later.
   // copy input array to list
   auto attribute_list = rq.get_ctx ().allocate<LinkedList> ();
   if (attribute_list == nullptr)
@@ -438,13 +489,6 @@ RequestFactory::create_locate_rq (bool is_group, const name_t &name, kmip_entity
       kmip_free_buffer (rq.get_ctx ().get (), item, sizeof (LinkedListItem));
     }
   rq.get_ctx ().free (attribute_list);
-}
-
-enum object_type
-RequestFactory::from_entity_type (enum kmip_entity_type t)
-{
-  int val = static_cast<int> (t);
-  return static_cast<object_type> (val);
 }
 
 } // namespace

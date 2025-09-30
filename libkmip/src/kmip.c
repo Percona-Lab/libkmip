@@ -869,6 +869,7 @@ kmip_check_enum_value (enum kmip_version version, enum tag t, int value)
         case KMIP_OP_CREATE:
         case KMIP_OP_GET:
         case KMIP_OP_GET_ATTRIBUTES:
+        case KMIP_OP_GET_ATTRIBUTE_LIST:
         case KMIP_OP_ACTIVATE:
         case KMIP_OP_DESTROY:
         case KMIP_OP_QUERY:
@@ -12304,7 +12305,9 @@ kmip_encode_request_batch_item (KMIP *ctx, const RequestBatchItem *value)
     case KMIP_OP_REVOKE:
       result = kmip_encode_revoke_request_payload (ctx, (RevokeRequestPayload *)value->request_payload);
       break;
-
+    case KMIP_OP_GET_ATTRIBUTE_LIST:
+      result = kmip_encode_get_attribute_list_request_payload (ctx, (GetAttributeListRequestPayload *)value->request_payload);
+      break;
     default:
       kmip_push_error_frame (ctx, __func__, __LINE__);
       return (KMIP_NOT_IMPLEMENTED);
@@ -12612,6 +12615,33 @@ kmip_encode_revoke_response_payload (KMIP *ctx, const RevokeResponsePayload *val
 
   result = kmip_encode_text_string (ctx, KMIP_TAG_UNIQUE_IDENTIFIER, value->unique_identifier);
   CHECK_RESULT (ctx, result);
+
+  uint8 *curr_index = ctx->index;
+  ctx->index        = length_index;
+
+  result = kmip_encode_length (ctx, curr_index - value_index);
+  CHECK_RESULT (ctx, result);
+
+  ctx->index = curr_index;
+
+  return (KMIP_OK);
+}
+
+int
+kmip_encode_get_attribute_list_request_payload (KMIP *ctx, const GetAttributeListRequestPayload *value)
+{
+  int result = 0;
+  result     = kmip_encode_int32_be (ctx, TAG_TYPE (KMIP_TAG_REQUEST_PAYLOAD, KMIP_TYPE_STRUCTURE));
+  CHECK_RESULT (ctx, result);
+
+  uint8 *length_index = ctx->index;
+  uint8 *value_index  = ctx->index += 4;
+
+  if (value->unique_identifier != NULL)
+    {
+      result = kmip_encode_text_string (ctx, KMIP_TAG_UNIQUE_IDENTIFIER, value->unique_identifier);
+      CHECK_RESULT (ctx, result);
+    }
 
   uint8 *curr_index = ctx->index;
   ctx->index        = length_index;
@@ -15066,7 +15096,12 @@ kmip_decode_response_batch_item (KMIP *ctx, ResponseBatchItem *value)
                         "RevokeResponsePayload structure");
         result = kmip_decode_revoke_response_payload (ctx, value->response_payload);
         break;
-
+      case KMIP_OP_GET_ATTRIBUTE_LIST:
+        value->response_payload = ctx->calloc_func (ctx->state, 1, sizeof (GetAttributeListResponsePayload));
+        CHECK_NEW_MEMORY (ctx, value->response_payload, sizeof (GetAttributeListResponsePayload),
+                        "GetAttributeListResponsePayload structure");
+        result = kmip_decode_get_attribute_list_response_payload (ctx, value->response_payload);
+        break;
       default:
         kmip_push_error_frame (ctx, __func__, __LINE__);
         return (KMIP_NOT_IMPLEMENTED);
@@ -15948,5 +15983,38 @@ kmip_decode_revoke_response_payload (KMIP *ctx, RevokeResponsePayload *value)
   result = kmip_decode_text_string (ctx, KMIP_TAG_UNIQUE_IDENTIFIER, value->unique_identifier);
   CHECK_RESULT (ctx, result);
 
+  return (KMIP_OK);
+}
+
+int kmip_decode_get_attribute_list_response_payload (KMIP *ctx, GetAttributeListResponsePayload *value)
+{
+  CHECK_BUFFER_FULL (ctx, 8);
+
+  int    result   = 0;
+  int32  tag_type = 0;
+  uint32 length   = 0;
+
+  kmip_decode_int32_be (ctx, &tag_type);
+  CHECK_TAG_TYPE (ctx, tag_type, KMIP_TAG_RESPONSE_PAYLOAD, KMIP_TYPE_STRUCTURE);
+
+  kmip_decode_length (ctx, &length);
+  CHECK_BUFFER_FULL (ctx, length);
+
+  value->unique_identifier = ctx->calloc_func (ctx->state, 1, sizeof (TextString));
+  CHECK_NEW_MEMORY (ctx, value->unique_identifier, sizeof (TextString), "UniqueIdentifier text string");
+
+  result = kmip_decode_text_string (ctx, KMIP_TAG_UNIQUE_IDENTIFIER, value->unique_identifier);
+  CHECK_RESULT (ctx, result);
+
+  //decode all name tags
+  uint32 tag = kmip_peek_tag (ctx);
+  while (tag == KMIP_TAG_ATTRIBUTE_NAME)
+    {
+      // memory?
+      value->attribute_name = ctx->calloc_func (ctx->state, 1, sizeof (TextString));
+      CHECK_NEW_MEMORY (ctx, value->attribute_name, sizeof (TextString), "AttributeName text string");
+      result = kmip_decode_text_string (ctx, KMIP_TAG_ATTRIBUTE_NAME, value->attribute_name);
+      tag = kmip_peek_tag (ctx);
+    }
   return (KMIP_OK);
 }

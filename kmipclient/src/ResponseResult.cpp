@@ -1,26 +1,40 @@
-//
-// Created by al on 24.03.25.
-//
-#include <sstream>
+/* Copyright (c) 2025 Percona LLC and/or its affiliates. All rights reserved.
 
-#include "KeyFactory.hpp"
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; version 2 of
+   the License.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 #include "ResponseResult.hpp"
+#include "KeyFactory.hpp"
 
+#include "AttributesFactory.hpp"
 #include "StringUtils.hpp"
 
 #include "kmip.h"
+#include "kmip_exceptions.hpp"
 #include "kmip_locate.h"
 
 namespace kmipclient
 {
 
 std::string
-from_kmip_text (TextString *s)
+from_kmip_text (const TextString *s)
 {
   return std::string{ s->value, s->size };
 }
 
-ve::expected<id_t, Error>
+id_t
 ResponseResult::get_id (const ResponseBatchItem *rbi)
 {
   id_t id;
@@ -64,45 +78,46 @@ ResponseResult::get_id (const ResponseBatchItem *rbi)
       break;
     // TODO: other operations
     default:
-      return Error (KMIP_NOT_IMPLEMENTED, "NOT IMPLEMENTED");
+      throw ErrorException (KMIP_NOT_IMPLEMENTED, "NOT IMPLEMENTED");
     }
   return id;
 }
 
-ve::expected<Key, Error>
-ResponseResult::get_key (ResponseBatchItem *rbi)
+Key
+ResponseResult::get_key (const ResponseBatchItem *rbi)
 {
   auto *pld = static_cast<GetResponsePayload *> (rbi->response_payload);
   switch (pld->object_type)
     {
       // name known to KeyFactory key types
     case KMIP_OBJTYPE_SYMMETRIC_KEY:
-    KMIP_OBJTYPE_PUBLIC_KEY:
-    KMIP_OBJTYPE_PRIVATE_KEY:
-    KMIP_OBJTYPE_CERTIFICATE:
+    case KMIP_OBJTYPE_PUBLIC_KEY:
+    case KMIP_OBJTYPE_PRIVATE_KEY:
+    case KMIP_OBJTYPE_CERTIFICATE:
       {
         return KeyFactory::parse_response (pld);
       };
     default:
-      return Error (-1, "Invalid response object type.");
+      throw ErrorException ("Invalid or unknown response object type.");
     }
 }
 
-ve::expected<Secret, Error>
-ResponseResult::get_secret (ResponseBatchItem *rbi)
+Secret
+ResponseResult::get_secret (const ResponseBatchItem *rbi)
 {
   if (auto *pld = static_cast<GetResponsePayload *> (rbi->response_payload);
       pld->object_type != KMIP_OBJTYPE_SECRET_DATA)
     {
-      return Error (KMIP_REASON_INVALID_DATA_TYPE, "Secret data expected");
+      throw ErrorException (KMIP_REASON_INVALID_DATA_TYPE, "Secret data expected");
     }
   else
     {
       auto     *secret = static_cast<SecretData *> (pld->object);
       KeyBlock *block  = secret->key_block;
-      if ((block->key_format_type != KMIP_KEYFORMAT_OPAQUE) || (block->key_wrapping_data != NULL))
+      if (!(block->key_format_type != KMIP_KEYFORMAT_OPAQUE || block->key_format_type != KMIP_KEYFORMAT_RAW)
+          || (block->key_wrapping_data != nullptr))
         {
-          return Error (KMIP_OBJECT_MISMATCH, "Secret data key block format mismatch");
+          throw ErrorException (KMIP_OBJECT_MISMATCH, "Secret data key block format mismatch");
         }
 
       auto   block_value = static_cast<KeyValue *> (block->key_value);
@@ -111,41 +126,31 @@ ResponseResult::get_secret (ResponseBatchItem *rbi)
       char   result_key[secret_size];
       for (int i = 0; i < secret_size; i++)
         {
-          result_key[i] = material->value[i];
+          result_key[i] = static_cast<char> (material->value[i]);
         }
-      return Secret{ result_key, 0, static_cast<int> (secret->secret_data_type) };
+      // TODO: State attribute should be in the key response but it is empty. How to read a state from kmip? RBI?
+      return Secret{ result_key, KMIP_STATE_PRE_ACTIVE, secret->secret_data_type };
     }
 }
 
-ve::expected<name_t, Error>
-ResponseResult::get_attributes (ResponseBatchItem *rbi)
+attributes_t
+ResponseResult::get_attributes (const ResponseBatchItem *rbi)
 {
-  auto      *pld = static_cast<GetAttributeResponsePayload *> (rbi->response_payload);
-  name_t     res;
+  auto *pld = static_cast<GetAttributeResponsePayload *> (rbi->response_payload);
+
   Attribute *attribute = pld->attribute;
-  switch (attribute->type)
-    {
-    case KMIP_ATTR_UNIQUE_IDENTIFIER:
-    case KMIP_ATTR_NAME:
-      {
-        const auto *ns = static_cast<Name *> (pld->attribute->value);
-        const auto *ts = static_cast<TextString *> (ns->value);
-        res            = StringUtils::fromKmipText (ts);
-      }
-      break;
-    case KMIP_ATTR_STATE:
-      {
-        const auto       *a = static_cast<enum kmip_entity_state *> (pld->attribute->value);
-        std::stringstream ss;
-        ss << *a;
-        res = ss.str ();
-      }
-      break;
-    default:
-      {
-        res = "Unknown attribute type, not converted";
-      }
-    }
+  // TODO: how to read multiple attributes? How to get attribute count?
+  //  Solution: re-implement parsing in C++ or change to linked list in kmip.c
+  return AttributesFactory::parse (attribute, 1);
+}
+
+names_t
+ResponseResult::get_attribute_list (const ResponseBatchItem *rbi)
+{
+  names_t res;
+  auto   *pld = static_cast<GetAttributeListResponsePayload *> (rbi->response_payload);
+  // TODO: process multiple
+  res.push_back (StringUtils::fromKmipText (pld->attribute_name));
   return res;
 }
 
@@ -166,8 +171,8 @@ copy_unique_ids (char ids[][MAX_LOCATE_LEN], size_t *id_size, const UniqueIdenti
   *id_size = idx;
 }
 
-ve::expected<ids_t, Error>
-ResponseResult::get_ids (ResponseBatchItem *rbi)
+ids_t
+ResponseResult::get_ids (const ResponseBatchItem *rbi)
 {
   auto           pld = static_cast<LocateResponsePayload *> (rbi->response_payload);
   LocateResponse locate_result;

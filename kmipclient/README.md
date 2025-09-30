@@ -36,11 +36,7 @@ It is based on OpenSSL BIO functions.
 
 The second interface is actual KMIP protocol implementation. It requires a NetClient implementation 
 as a dependency injection in the constructor. This interface is also similar to the existing C++ wrapper 
-and can be used the similar whay when properly initialized with the  NetClient-derived instance.
-
-The main difference to the “kmippp.h” is in-band error processing. It uses a template similar to
-std::expected from the C++ 23. Though, project may use older C++ standard (C++ 20), so the interface 
-includes a C++ 20 implementation, that wraps standard implementation or provides replacement if it is absent.
+and can be used the similar way when properly initialized with the  NetClient-derived instance.
 
 All KMIP request creation and encoding are encapsulated in the RequestFactory class. All operations are 
 on stack and do not require memory management.
@@ -61,20 +57,22 @@ methods and does not require memory management.
 The high-level interface usage example:
 
 ```C++
-NetClientOpenSSL  net_client (argv[1], argv[2], argv[3], argv[4], argv[5], 200);
-KmipClient client (net_client);
+  NetClientOpenSSL net_client (argv[1], argv[2], argv[3], argv[4], argv[5], 200);
+  KmipClient       client (net_client);
 
-  const auto opt_key = client.op_get_key (argv[6]);
-  if (opt_key.has_value ())
-  {
-    std::cout << "Key: 0x";
-    auto k = opt_key.value ();
-    print_hex (k.value());
-  }
-  else
-  {
-    std::cerr << "Can not get key with id:"<< argv[6] << " Cause: "<< opt_key.error().message << std::endl;
-  };
+  try
+    {
+      std::string id = argv[6];
+      auto key = client.op_get_key (id);
+      std::cout << "Key: 0x";
+      print_hex (key.value ());
+      std::cout << "State: " << key.attribute_value (KMIP_ATTR_NAME_STATE);
+    }
+  catch (const std::exception &e)
+    {
+      std::cerr << "Can not get key with id:" << argv[6] << " Cause: " << e.what () << std::endl;
+      return 1;
+    };
 ```
 As can be seen from the code above, the NetClientOpenSSL class instance is injected as dependency 
 inversion into the KmipClient class instance. This approach allows to use any net connection with KmipClient. 
@@ -132,37 +130,56 @@ ResponseResultFactory::get_key (ResponseBatchItem *rbi)
 And here is an example of top-level function implementation
 
 ```C++
-my::expected<Key, Error>
-KmipClient::op_get_key (const id_t &id)
+Key
+KmipClient::op_get_key (const id_t &id) const
 {
-  KmipCtx ctx;
-  RequestFactory request_factory(ctx);
-  ResponseFactory rf(ctx);
-  try
-    {
-      request_factory.create_get_rq (id);
-      io->do_exchange (ctx);
-      return rf.get_key(0);
-    }
-  catch (ErrorException &e)
-    {
-      return Error(e.code (), e.what ());
-    }
+  KmipCtx         ctx;
+  ResponseFactory rf (ctx);
+  RequestFactory::create_get_rq (ctx, id);
+  io->do_exchange (ctx);
+  return rf.get_key (0);
 }
 ```
 As can be seen from the source code, each KMIP low-level entity is encapsulated in some C++ class,
 therefore advanced C++ memory management is utilized. Also, the design is avoiding any kind 
-of smart pointers (almost… sometimes we need it), utilizing on-stack variables. Raw pointers from 
+of smart pointers (almost… sometimes we need it), using on-stack variables. Raw pointers from 
 the low-level code are  used rarely just to pass stack-based data for more detailed processing.
 
-It is worth of mentioning, that KMIP protocol supports multiple request items ( batch items ) 
+It is worth mentioning that KMIP protocol supports multiple request items ( batch items ) 
 in one network request. For example, it might be combination of GET and GET_ATTRRIBUTE operations 
 to have a key with set of it’s attributes. It is important to have key state attribute, 
 because a key could be outdated, deactivated or marked as compromised.
 
-The design of this library supports multiple batch items in requests and in responses.
+At the moment, the interface is prepared for multiple request items in one request. But, it is not 
+implemented in the library yet, because our plans are to remove old code (kmip.c) completelly and replace 
+it with safe and clean C++ implementation. Actually, this is the protocol serialization/decerialization 
+level only, so it is not a big deal.
+
 
 ## Usage
 
-Please, seee usage examples in the "examples" directory
+Please see usage examples in the "examples" directory
+## Build
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+```
+## Integration testing
+
+Tests are implemented using the Google Test framework. The source code is in the "tests" directory.
+
+To run the internal test suite, please, do the following:
+
+1. Export the following variables: KMIP_PORT, KMIP_CLIENT_CA, KMIP_CLIENT_KEY, KMIP_SERVER_CA. Example:
+```bash
+    export KMIP_ADDR=127.0.0.1
+    export KMIP_PORT=5696
+    export KMIP_CLIENT_CA=/path/to/client_cert.pem
+    export KMIP_CLIENT_KEY=/path/to/client_key.pem
+    export KMIP_SERVER_CA=/path/to/server_cert.pem
+```
+2. Run "cmake --build ." from the build directory.
+
 

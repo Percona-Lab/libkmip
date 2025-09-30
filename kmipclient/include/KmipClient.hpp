@@ -1,30 +1,50 @@
-//
-// Created by al on 10.03.25.
-//
+/* Copyright (c) 2025 Percona LLC and/or its affiliates. All rights reserved.
 
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; version 2 of
+   the License.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 #ifndef KMIP_CLIENT_HPP
 #define KMIP_CLIENT_HPP
 
-#include "../src/RequestFactory.hpp"
+#include <memory>
+
 #include "Key.hpp"
 #include "Logger.hpp"
 #include "NetClient.hpp"
 #include "kmip_data_types.hpp"
-#include "v_expected.hpp"
-
-#include <memory>
 
 namespace kmipclient
 {
 
-using namespace ve; // std::expected in C++ 23 or ve::expected in earlier versions
-
 class IOUtils;
-
+/**
+ * A client that communicates with a KMIP-compliant server to perform cryptographic operations
+ * such as key management, secret management, and cryptographic operations.
+ */
 class KmipClient
 {
 public:
+  /**
+   * Creates instance of KmipClient without logger
+   * @param net_client pre-initialized instance of NetClient interface
+   */
   explicit KmipClient (NetClient &net_client);
+  /**
+   * Creates instance of KmipClient with logger
+   * @param net_client pre-initialized instance of NetClient interface
+   * @param log initialized instance of Logger interface
+   */
   explicit KmipClient (NetClient &net_client, const std::shared_ptr<Logger> &log);
   ~KmipClient ();
   // no copy, no move
@@ -34,13 +54,13 @@ public:
   KmipClient &operator= (KmipClient &&)      = delete;
 
   /**
-   * KMIP register operation, stores an proposed key on the server
+   * KMIP register operation, stores a proposed key on the server
    * @param name The "Name" attribute of the key
    * @param group The group name for the key
    * @param k The key to register
-   * @return ID of the key if success or error
+   * @return ID of the key if success or throws ErrorException
    */
-  [[nodiscard]] expected<id_t, Error> op_register_key (const name_t &name, const name_t &group, Key &k) const;
+  [[nodiscard]] id_t op_register_key (const name_t &name, const name_t &group, const Key &k) const;
 
   /**
    *
@@ -48,85 +68,94 @@ public:
    * @param group The group name for the secret
    * @param secret The secret to register
    * @param secret_type Type of the secret, @see
-   * @return ID of the key if success or error
+   * @return ID of the key if success or throws ErrorException
    */
-  [[nodiscard]] expected<id_t, Error> op_register_secret (const name_t &name, const name_t &group, std::string secret,
-                                                          enum kmip_secret_type secret_type) const;
+  [[nodiscard]] id_t op_register_secret (const name_t &name, const name_t &group, std::string secret,
+                                         enum secret_data_type secret_type) const;
 
   /** KMIP::create operation, generates a new AES-256 symmetric key on the server
    * @param name name attribute of the key
    * @param group group attribute of the key
-   * @return ID of the created ley
+   * @return ID of the created key or throws ErrorException
    */
-  [[nodiscard]] expected<id_t, Error> op_create_aes_key (const name_t &name, const name_t &group) const;
+  [[nodiscard]] id_t op_create_aes_key (const name_t &name, const name_t &group) const;
 
   /**
    * Gets key by ID
-   * @param id ?Id of the Key
-   * @return The Key or Error
+   * @param id id of the Key
+   * @return The Key or throws ErrorException
    */
-  [[nodiscard]] expected<Key, Error>  op_get_key (const id_t &id) const;
+  [[nodiscard]] Key op_get_key (const id_t &id) const;
 
   /**
    * Gets secret by the ID
    * @param id ID of the secret
-   * @return The secret or Error
+   * @return The secret or throws ErrorException
    */
-  [[nodiscard]] expected<Secret, Error> op_get_secret (const id_t &id) const;
+  [[nodiscard]] Secret op_get_secret (const id_t &id) const;
 
   /**
    * Changes key/secret state from pre-active to active.
    * @param id ID of the entity
-   * @return ID of the entity or Error
+   * @return ID of the entity or throws ErrorException
    */
-  [[nodiscard]] expected<id_t, Error>   op_activate (const id_t &id) const;
+  [[nodiscard]] id_t op_activate (const id_t &id) const;
 
-  /** KMIP::get_attribute operation, retrieve the name of a symmetric key by id
+  /** KMIP::get_attributes operation, retrieve the names of a symmetric key by id
    * @paran id ID of the entity
-   * @param attr_name name of the attribute, e.g. "Name", "State"
-   * @return value of the attribute or error
+   * @return value of the attribute or throws ErrorException
    */
-  [[nodiscard]] expected<name_t, Error> op_get_attribute (const id_t &id, const name_t &attr_name) const;
+  [[nodiscard]] names_t op_get_attribute_list (const id_t &id) const;
+
+  /** KMIP::get_attribute operation, retrieve the attribute of an entity with id by attribute names name
+   * @param id ID of the entity
+   * @param attr_names names of the attribute in a vector, e.g. "Name", "State", "Object Group"
+   * @return value of the attribute or throws ErrorException
+   */
+  [[nodiscard]] attributes_t op_get_attributes (const id_t &id, const std::vector<name_t> &attr_names) const;
 
   /** KMIP::locate operation, retrieve symmetric keys by name
    * Note: HasiCorp Vault does not allow name duplication
    * @param name name of the entity
-   * @param type type of the entity to retrieve
+   * @param o_type type of the entity to retrieve
+   * @return In general case, one ID. Some KMIP servers allow multiple IDs with the same name, so there will be multiple
+   * IDs. If there are no entities with such a name, an empty vector is returned.
    */
-  [[nodiscard]] expected<ids_t, Error> op_locate_by_name (const name_t &name, kmip_entity_type type) const;
+  [[nodiscard]] ids_t op_locate_by_name (const name_t &name, enum object_type o_type) const;
 
   /**
    * Gets IDs of entities by the group name
    * @param group group name
-   * @return vector of key IDs or Error
+   * @param o_type type of the entity to retrieve
+   * @return vector of key IDs
    */
-  [[nodiscard]] expected<ids_t, Error> op_locate_by_group (const name_t &group, kmip_entity_type type) const;
+  [[nodiscard]] ids_t op_locate_by_group (const name_t &group, enum object_type o_type) const;
 
   /**
-   * Revokes/deactivates key or other entity
+   * Revokes/deactivates a key or another entity
    * @param id ID of the entity
    * @param reason the reason to revoke
    * @param message Message of revocation to be saved in the server side
    * @param occurrence_time time of the incident, 0 for the key deactivation
-   * @return ID of the entity or error
+   * @return ID of the empty string on error
    */
-  [[nodiscard]] expected<id_t, Error> op_revoke (const id_t &id, enum kmip_revocation_reason reason, const name_t &message,
-                                                 time_t occurrence_time) const;
+  [[nodiscard]] id_t op_revoke (const id_t &id, enum revocation_reason_type reason, const name_t &message,
+                                time_t occurrence_time) const;
   /**
    * Destroys an entity by ID
    * NOTE: Entity should be revoked/deactivated
    * @param id ID of the entity
-   * @return ID of the entity or error
+   * @return ID of the entity or empty string on error
    */
-  [[nodiscard]] expected<id_t, Error> op_destroy (const id_t &id) const;
+  [[nodiscard]] id_t op_destroy (const id_t &id) const;
 
   /**
    * KMIP::locate operation, retrieve all symmetric keys
    * note: name can be empty, and will retrieve all keys
-   * @param type type of the entity to fetch
+   * @param o_type type of the entity to fetch
    * @return vector of IDs of entities
    */
-  [[nodiscard]] expected<ids_t, Error> op_all (kmip_entity_type type) const;
+  [[nodiscard]] ids_t op_all (enum object_type o_type) const;
 
 private:
   NetClient               &net_client;

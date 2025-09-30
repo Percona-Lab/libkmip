@@ -35,6 +35,21 @@ print_hex (const kmipclient::key_t &key)
   std::cout << std::endl;
 }
 
+void
+print_attributes (const attributes_t &attrs)
+{
+  for (auto const &attr : attrs)
+    {
+      std::cout << attr.first << ": " << attr.second << std::endl;
+    }
+}
+
+/* This example is incomplete because of the low-level kmip.c is quite incomplete,
+ * and there's no sense to complete exiting ugly C code. The next version of the "KMIPClient" library
+ * will remove dependency on old C code and will be replaced with C++ code
+ * of the protocol serialization/deserialization
+ */
+
 int
 main (int argc, char **argv)
 {
@@ -55,12 +70,22 @@ main (int argc, char **argv)
       auto        key = client.op_get_key (id);
       std::cout << "Key: 0x";
       print_hex (key.value ());
-      std::cout << "State: " << key.attribute_value (KMIP_ATTR_NAME_STATE);
+      auto attr_names = client.op_get_attribute_list (id);
+      // TODO: operation below should give 2 attributes but gives the first only. Problem is in kmip.c
+      //    auto attr = client.op_get_attributes (id, {KMIP_ATTR_NAME_STATE, KMIP_ATTR_NAME_NAME});
+      // TODO: operation below should give all available attributes but gives none
+      //     auto attr = client.op_get_attributes (id, {});
+      // at the moment we get attributes one by one, the State attribute is fetched with the key,
+      // and we also added the Name attribute by the separate call to the server
+      auto attr       = client.op_get_attributes (id, { KMIP_ATTR_NAME_NAME });
+      key.set_attribute (KMIP_ATTR_NAME_NAME, attr[KMIP_ATTR_NAME_NAME]);
+      std::cout << "Attributes: " << std::endl;
+      print_attributes (key.attributes ());
     }
   catch (const std::exception &e)
     {
       std::cerr << "Can not get key with id:" << argv[6] << " Cause: " << e.what () << std::endl;
-      return 1;
+      return -1;
     };
 
   return 0;

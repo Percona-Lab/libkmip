@@ -1,6 +1,19 @@
-//
-// Created by al on 18.03.25.
-//
+/* Copyright (c) 2025 Percona LLC and/or its affiliates. All rights reserved.
+
+   This program is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public License
+   as published by the Free Software Foundation; version 2 of
+   the License.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #ifndef DATA_TYPES_HPP
 #define DATA_TYPES_HPP
@@ -10,52 +23,30 @@
 #include <unordered_map>
 #include <vector>
 
+#include "kmip_enums.h"
+
 namespace kmipclient
 {
+// we use protocol/specification version 1.4 as default
+#define KMIP_PROTOCOL_VERSION_DEFAULT KMIP_1_4
 
 // known attributes so far
-#define KMIP_ATTR_NAME_NAME  "Name"
-#define KMIP_ATTR_NAME_STATE "State"
+#define KMIP_ATTR_NAME_NAME              "Name"
+#define KMIP_ATTR_NAME_GROUP             "Object Group"
+#define KMIP_ATTR_NAME_STATE             "State"
+#define KMIP_ATTR_NAME_UNIQUE_IDENTIFIER "UniqueID"
 
 using key_t        = std::vector<unsigned char>;
 using bin_data_t   = std::vector<unsigned char>;
 using id_t         = std::string;
 using ids_t        = std::vector<std::string>;
 using name_t       = std::string;
+using names_t      = std::vector<std::string>;
 using secret_t     = std::string;
 using attributes_t = std::unordered_map<std::string, std::string>;
 
-// should be the same as   enum object_type in kmip.h
-enum kmip_entity_type
-{
-  /* KMIP 1.0 */
-  KMIP_ENTITY_CERTIFICATE         = 0x01,
-  KMIP_ENTITY_SYMMETRIC_KEY       = 0x02,
-  KMIP_ENTITY_PUBLIC_KEY          = 0x03,
-  KMIP_ENTITY_PRIVATE_KEY         = 0x04,
-  KMIP_ENTITY_SPLIT_KEY           = 0x05,
-  KMIP_ENTITY_TEMPLATE            = 0x06, /* Deprecated as of KMIP 1.3 */
-  KMIP_ENTITY_SECRET_DATA         = 0x07,
-  KMIP_ENTITY_OPAQUE_OBJECT       = 0x08,
-  /* KMIP 1.2 */
-  KMIP_ENTITY_PGP_KEY             = 0x09,
-  /* KMIP 2.0 */
-  KMIP_ENTITY_CERTIFICATE_REQUEST = 0x0A
-};
-
-enum kmip_entity_state // should be the same as "enum" state in kmip.h
-{
-  /* KMIP 1.0 */
-  KMIP_STATE_PRE_ACTIVE            = 0x01,
-  KMIP_STATE_ACTIVE                = 0x02,
-  KMIP_STATE_DEACTIVATED           = 0x03,
-  KMIP_STATE_COMPROMISED           = 0x04,
-  KMIP_STATE_DESTROYED             = 0x05,
-  KMIP_STATE_DESTROYED_COMPROMISED = 0x06
-};
-
 inline std::ostream &
-operator<< (std::ostream &out, const kmip_entity_state value)
+operator<< (std::ostream &out, const state value)
 {
   const char *str;
   switch (value)
@@ -78,40 +69,12 @@ operator<< (std::ostream &out, const kmip_entity_state value)
   return out << str;
 }
 
-enum kmip_secret_type
-{
-  KMIP_SECRET_TYPE_NONE                   = 0,
-  KMIP_SECRET_TYPE_PASSWORD               = 0x01,
-  KMIP_SECRET_TYPE_SEED                   = 0x02,
-  KMIP_SECRET_TYPE_SECRET_DATA_EXTENSIONS = 0x80000000
-};
-
-enum kmip_revocation_reason
-{
-  /* KMIP 1.0 */
-  KMIP_REVIKE_UNSPECIFIED            = 0x01,
-  KMIP_REVIKE_KEY_COMPROMISE         = 0x02,
-  KMIP_REVIKE_CA_COMPROMISE          = 0x03,
-  KMIP_REVIKE_AFFILIATION_CHANGED    = 0x04,
-  KMIP_REVIKE_SUSPENDED              = 0x05,
-  KMIP_REVIKE_CESSATION_OF_OPERATION = 0x06,
-  KMIP_REVIKE_PRIVILEDGE_WITHDRAWN   = 0x07,
-  KMIP_REVIKE_REVOCATION_EXTENSIONS  = 0x80000000
-};
-
 class Secret
 {
 public:
-  secret_t value;
-  int      state       = 0;
-  int      secret_type = 0;
-};
-
-class Error
-{
-public:
-  int         code;
-  std::string message;
+  secret_t              value;
+  enum state            state       = KMIP_STATE_PRE_ACTIVE;
+  enum secret_data_type secret_type = PASSWORD;
 };
 
 }
