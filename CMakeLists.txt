@@ -6,6 +6,8 @@ endif(POLICY CMP0048)
 
 project(kmip C CXX)
 
+enable_testing()
+
 set(KMIP_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 option(WITH_ASAN "Enable AddressSanitizer for project build" OFF)
 option(BUILD_KMIP_TESTS "Build and register libkmip/src/tests.c with CTest" OFF)
@@ -28,30 +30,32 @@ if(WITH_ASAN)
   endif()
 endif()
 
-# Keep Clang-20+ builds quiet even when user environments inject strict warning flags.
-if(CMAKE_C_COMPILER_ID MATCHES "Clang" AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 20)
-  add_compile_options(
-    $<$<COMPILE_LANGUAGE:C>:-Wno-c23-extensions>
-    $<$<COMPILE_LANGUAGE:C>:-Wno-invalid-utf8>
-    $<$<COMPILE_LANGUAGE:C>:-Wno-newline-eof>
-    $<$<COMPILE_LANGUAGE:C>:-Wno-sign-compare>
-    $<$<COMPILE_LANGUAGE:C>:-Wno-unused-parameter>
-    $<$<COMPILE_LANGUAGE:C>:-Wno-unused-variable>
-  )
-endif()
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 20)
-  add_compile_options(
-    $<$<COMPILE_LANGUAGE:CXX>:-Wno-invalid-utf8>
-    $<$<COMPILE_LANGUAGE:CXX>:-Wno-missing-field-initializers>
-    $<$<COMPILE_LANGUAGE:CXX>:-Wno-sign-compare>
-    $<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-parameter>
-    $<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-private-field>
-    $<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-variable>
-    $<$<COMPILE_LANGUAGE:CXX>:-Wno-vla-cxx-extension>
-  )
-endif()
 
 add_subdirectory(libkmip/src)
 add_subdirectory(kmippp)
+add_subdirectory(kmipcore)
+add_subdirectory(kmipclient)
 
+find_package(Doxygen)
+
+option(BUILD_DOCS "Build API documentation with Doxygen" ${DOXYGEN_FOUND})
+
+if(BUILD_DOCS)
+  if(NOT DOXYGEN_FOUND)
+    message(FATAL_ERROR "BUILD_DOCS is ON but Doxygen was not found.")
+  endif()
+
+  configure_file(Doxyfile ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile COPYONLY)
+
+  add_custom_target(doc
+    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM
+  )
+
+  # Make the 'doc' target depend on your build targets if necessary
+  # add_dependencies(doc your_library your_executable)
+else()
+  message(STATUS "Doxygen not found or BUILD_DOCS=OFF, skipping documentation generation.")
+endif()

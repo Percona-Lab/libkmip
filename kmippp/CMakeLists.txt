@@ -1,4 +1,18 @@
 
+ # Keep legacy kmippp C++ sources quiet on Clang-20+ even when user
+ # environments inject strict warning flags.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 20)
+  add_compile_options(
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-invalid-utf8>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-missing-field-initializers>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-sign-compare>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-parameter>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-private-field>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-variable>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-vla-cxx-extension>
+  )
+endif()
+
 add_library(
   kmippp
   STATIC

@@ -1,6 +1,19 @@
 
 find_package(OpenSSL REQUIRED)
 
+# Keep legacy libkmip C sources quiet on Clang-20+ even when user environments
+# inject strict warning flags.
+if(CMAKE_C_COMPILER_ID MATCHES "Clang" AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 20)
+  add_compile_options(
+    $<$<COMPILE_LANGUAGE:C>:-Wno-c23-extensions>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-invalid-utf8>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-newline-eof>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-sign-compare>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-unused-parameter>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-unused-variable>
+  )
+endif()
+
 add_library(
   kmip
   STATIC
