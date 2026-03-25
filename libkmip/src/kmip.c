@@ -5805,6 +5805,24 @@ kmip_free_private_key (KMIP *ctx, PrivateKey *value)
 }
 
 void
+kmip_free_secret_data (KMIP *ctx, SecretData *value)
+{
+  if (value != NULL)
+    {
+      if (value->key_block != NULL)
+        {
+          kmip_free_key_block (ctx, value->key_block);
+          ctx->free_func (ctx->state, value->key_block);
+          value->key_block = NULL;
+        }
+
+      value->secret_data_type = 0;
+    }
+
+  return;
+}
+
+void
 kmip_free_key_wrapping_specification (KMIP *ctx, KeyWrappingSpecification *value)
 {
   if (value != NULL)
@@ -6030,6 +6048,10 @@ kmip_free_get_response_payload (KMIP *ctx, GetResponsePayload *value)
               kmip_free_private_key (ctx, (PrivateKey *)value->object);
               break;
 
+            case KMIP_OBJTYPE_SECRET_DATA:
+              kmip_free_secret_data (ctx, (SecretData *)value->object);
+              break;
+
             default:
               /* NOTE (ph) Hitting this case means that we don't know */
               /*      what the actual type, size, or value of         */
@@ -6140,6 +6162,54 @@ kmip_free_destroy_response_payload (KMIP *ctx, DestroyResponsePayload *value)
 }
 
 void
+kmip_free_revoke_request_payload (KMIP *ctx, RevokeRequestPayload *value)
+{
+  if (value != NULL)
+    {
+      if (value->unique_identifier != NULL)
+        {
+          kmip_free_text_string (ctx, value->unique_identifier);
+          ctx->free_func (ctx->state, value->unique_identifier);
+          value->unique_identifier = NULL;
+        }
+
+      if (value->revocation_reason != NULL)
+        {
+          if (value->revocation_reason->message != NULL)
+            {
+              kmip_free_text_string (ctx, value->revocation_reason->message);
+              ctx->free_func (ctx->state, value->revocation_reason->message);
+              value->revocation_reason->message = NULL;
+            }
+
+          value->revocation_reason->reason = 0;
+          ctx->free_func (ctx->state, value->revocation_reason);
+          value->revocation_reason = NULL;
+        }
+
+      value->compromise_occurence_date = 0;
+    }
+
+  return;
+}
+
+void
+kmip_free_revoke_response_payload (KMIP *ctx, RevokeResponsePayload *value)
+{
+  if (value != NULL)
+    {
+      if (value->unique_identifier != NULL)
+        {
+          kmip_free_text_string (ctx, value->unique_identifier);
+          ctx->free_func (ctx->state, value->unique_identifier);
+          value->unique_identifier = NULL;
+        }
+    }
+
+  return;
+}
+
+void
 kmip_free_request_batch_item (KMIP *ctx, RequestBatchItem *value)
 {
   if (value != NULL)
@@ -6185,6 +6255,10 @@ kmip_free_request_batch_item (KMIP *ctx, RequestBatchItem *value)
 
             case KMIP_OP_LOCATE:
               kmip_free_locate_request_payload (ctx, (LocateRequestPayload *)value->request_payload);
+              break;
+
+            case KMIP_OP_REVOKE:
+              kmip_free_revoke_request_payload (ctx, (RevokeRequestPayload *)value->request_payload);
               break;
 
             default:
@@ -6270,6 +6344,10 @@ kmip_free_response_batch_item (KMIP *ctx, ResponseBatchItem *value)
 
             case KMIP_OP_LOCATE:
               kmip_free_locate_response_payload (ctx, (LocateResponsePayload *)value->response_payload);
+              break;
+
+            case KMIP_OP_REVOKE:
+              kmip_free_revoke_response_payload (ctx, (RevokeResponsePayload *)value->response_payload);
               break;
 
             default:

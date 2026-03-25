@@ -1726,6 +1726,7 @@ typedef int64 intptr;
   void kmip_free_symmetric_key (KMIP *, SymmetricKey *);
   void kmip_free_public_key (KMIP *, PublicKey *);
   void kmip_free_private_key (KMIP *, PrivateKey *);
+  void kmip_free_secret_data (KMIP *, SecretData *);
   void kmip_free_key_wrapping_specification (KMIP *, KeyWrappingSpecification *);
   void kmip_free_create_request_payload (KMIP *, CreateRequestPayload *);
   void kmip_free_create_response_payload (KMIP *, CreateResponsePayload *);

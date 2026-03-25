@@ -5548,6 +5548,150 @@ test_decode_get_response_payload (TestTracker *tracker)
 }
 
 int
+test_decode_get_response_payload_secret_data (TestTracker *tracker)
+{
+  TRACK_TEST (tracker);
+
+  uint8       encoding[256] = { 0 };
+  struct kmip encode_ctx    = { 0 };
+  kmip_init (&encode_ctx, encoding, ARRAY_LENGTH (encoding), KMIP_1_0);
+
+  struct text_string uuid = { 0 };
+  uuid.value              = "secret-data-id";
+  uuid.size               = 14;
+
+  uint8              key_material[4] = { 0xDE, 0xAD, 0xBE, 0xEF };
+  struct byte_string key_bytes       = { 0 };
+  key_bytes.value                    = key_material;
+  key_bytes.size                     = ARRAY_LENGTH (key_material);
+
+  struct key_value kv = { 0 };
+  kv.key_material     = &key_bytes;
+
+  struct key_block kb        = { 0 };
+  kb.key_format_type         = KMIP_KEYFORMAT_RAW;
+  kb.key_value               = &kv;
+  kb.cryptographic_algorithm = KMIP_CRYPTOALG_AES;
+  kb.cryptographic_length    = 128;
+
+  struct secret_data secret = { 0 };
+  secret.secret_data_type   = PASSWORD;
+  secret.key_block          = &kb;
+
+  int    result       = 0;
+  uint8 *length_index = NULL;
+  uint8 *value_index  = NULL;
+  uint8 *curr_index   = NULL;
+
+  result = kmip_encode_int32_be (&encode_ctx, TAG_TYPE (KMIP_TAG_RESPONSE_PAYLOAD, KMIP_TYPE_STRUCTURE));
+  if (result != KMIP_OK)
+    {
+      result = report_result (tracker, result, KMIP_OK, __func__);
+      kmip_destroy (&encode_ctx);
+      return (result);
+    }
+
+  length_index = encode_ctx.index;
+  value_index  = encode_ctx.index += 4;
+
+  result = kmip_encode_enum (&encode_ctx, KMIP_TAG_OBJECT_TYPE, KMIP_OBJTYPE_SECRET_DATA);
+  if (result != KMIP_OK)
+    {
+      result = report_result (tracker, result, KMIP_OK, __func__);
+      kmip_destroy (&encode_ctx);
+      return (result);
+    }
+  result = kmip_encode_text_string (&encode_ctx, KMIP_TAG_UNIQUE_IDENTIFIER, &uuid);
+  if (result != KMIP_OK)
+    {
+      result = report_result (tracker, result, KMIP_OK, __func__);
+      kmip_destroy (&encode_ctx);
+      return (result);
+    }
+  result = kmip_encode_int32_be (&encode_ctx, TAG_TYPE (KMIP_TAG_SECRET_DATA, KMIP_TYPE_STRUCTURE));
+  if (result != KMIP_OK)
+    {
+      result = report_result (tracker, result, KMIP_OK, __func__);
+      kmip_destroy (&encode_ctx);
+      return (result);
+    }
+
+  uint8 *secret_length_index = encode_ctx.index;
+  uint8 *secret_value_index  = encode_ctx.index += 4;
+
+  result = kmip_encode_enum (&encode_ctx, KMIP_TAG_SECRET_DATA_TYPE, secret.secret_data_type);
+  if (result != KMIP_OK)
+    {
+      result = report_result (tracker, result, KMIP_OK, __func__);
+      kmip_destroy (&encode_ctx);
+      return (result);
+    }
+
+  result = kmip_encode_key_block (&encode_ctx, secret.key_block);
+  if (result != KMIP_OK)
+    {
+      result = report_result (tracker, result, KMIP_OK, __func__);
+      kmip_destroy (&encode_ctx);
+      return (result);
+    }
+
+  curr_index       = encode_ctx.index;
+  encode_ctx.index = secret_length_index;
+
+  result = kmip_encode_length (&encode_ctx, curr_index - secret_value_index);
+  if (result != KMIP_OK)
+    {
+      result = report_result (tracker, result, KMIP_OK, __func__);
+      kmip_destroy (&encode_ctx);
+      return (result);
+    }
+  encode_ctx.index = curr_index;
+
+  curr_index       = encode_ctx.index;
+  encode_ctx.index  = length_index;
+
+  result = kmip_encode_length (&encode_ctx, curr_index - value_index);
+  if (result != KMIP_OK)
+    {
+      result = report_result (tracker, result, KMIP_OK, __func__);
+      kmip_destroy (&encode_ctx);
+      return (result);
+    }
+  encode_ctx.index = curr_index;
+
+  size_t decode_size = (size_t)(encode_ctx.index - encode_ctx.buffer);
+
+  struct kmip decode_ctx = { 0 };
+  kmip_init (&decode_ctx, encoding, decode_size, KMIP_1_0);
+
+  struct get_response_payload observed = { 0 };
+  result                              = kmip_decode_get_response_payload (&decode_ctx, &observed);
+
+  int comparison = 0;
+  if (result == KMIP_OK)
+    {
+      SecretData *decoded_secret = (SecretData *)observed.object;
+      KeyValue   *decoded_kv = (decoded_secret != NULL) ? (KeyValue *)decoded_secret->key_block->key_value : NULL;
+      ByteString *decoded_material = (decoded_kv != NULL) ? (ByteString *)decoded_kv->key_material : NULL;
+      comparison = (observed.object_type == KMIP_OBJTYPE_SECRET_DATA) && (observed.unique_identifier != NULL)
+                   && (observed.unique_identifier->size == uuid.size)
+                   && (memcmp (observed.unique_identifier->value, uuid.value, uuid.size) == 0)
+                   && (decoded_secret != NULL) && (decoded_secret->secret_data_type == PASSWORD)
+                   && (decoded_secret->key_block != NULL) && (decoded_kv != NULL) && (decoded_material != NULL)
+                   && (decoded_material->size == ARRAY_LENGTH (key_material))
+                   && (memcmp (decoded_material->value, key_material, ARRAY_LENGTH (key_material))
+                       == 0);
+    }
+
+  result = report_decoding_test_result (tracker, &decode_ctx, comparison, result, __func__);
+
+  kmip_free_get_response_payload (&decode_ctx, &observed);
+  kmip_destroy (&decode_ctx);
+  kmip_destroy (&encode_ctx);
+  return (result);
+}
+
+int
 test_encode_destroy_request_payload (TestTracker *tracker)
 {
   TRACK_TEST (tracker);
@@ -6367,6 +6511,61 @@ test_decode_response_batch_item_get_payload (TestTracker *tracker)
                                         __func__);
   kmip_free_response_batch_item (&ctx, &observed);
   kmip_destroy (&ctx);
+  return (result);
+}
+
+int
+test_decode_response_batch_item_revoke_payload (TestTracker *tracker)
+{
+  TRACK_TEST (tracker);
+
+  uint8       encoding[128] = { 0 };
+  struct kmip encode_ctx    = { 0 };
+  kmip_init (&encode_ctx, encoding, ARRAY_LENGTH (encoding), KMIP_1_0);
+
+  struct text_string uuid = { 0 };
+  uuid.value              = "revoke-id";
+  uuid.size               = 9;
+
+  struct revoke_response_payload payload = { 0 };
+  payload.unique_identifier              = &uuid;
+
+  struct response_batch_item item = { 0 };
+  item.operation                  = KMIP_OP_REVOKE;
+  item.result_status              = KMIP_STATUS_SUCCESS;
+  item.response_payload           = &payload;
+
+  int result = kmip_encode_response_batch_item (&encode_ctx, &item);
+  if (result != KMIP_OK)
+    {
+      result = report_result (tracker, result, KMIP_OK, __func__);
+      kmip_destroy (&encode_ctx);
+      return (result);
+    }
+
+  size_t decode_size = (size_t)(encode_ctx.index - encode_ctx.buffer);
+
+  struct kmip decode_ctx = { 0 };
+  kmip_init (&decode_ctx, encoding, decode_size, KMIP_1_0);
+
+  struct response_batch_item observed = { 0 };
+  result                             = kmip_decode_response_batch_item (&decode_ctx, &observed);
+
+  int comparison = 0;
+  if (result == KMIP_OK)
+    {
+      RevokeResponsePayload *decoded_payload = (RevokeResponsePayload *)observed.response_payload;
+      comparison = (observed.operation == KMIP_OP_REVOKE) && (observed.result_status == KMIP_STATUS_SUCCESS)
+                   && (decoded_payload != NULL) && (decoded_payload->unique_identifier != NULL)
+                   && (decoded_payload->unique_identifier->size == uuid.size)
+                   && (memcmp (decoded_payload->unique_identifier->value, uuid.value, uuid.size) == 0);
+    }
+
+  result = report_decoding_test_result (tracker, &decode_ctx, comparison, result, __func__);
+
+  kmip_free_response_batch_item (&decode_ctx, &observed);
+  kmip_destroy (&decode_ctx);
+  kmip_destroy (&encode_ctx);
   return (result);
 }
 
@@ -10355,9 +10554,11 @@ run_tests (void)
   test_decode_create_response_payload_with_template_attribute (&tracker);
   test_decode_get_request_payload (&tracker);
   test_decode_get_response_payload (&tracker);
+  test_decode_get_response_payload_secret_data (&tracker);
   test_decode_destroy_request_payload (&tracker);
   test_decode_destroy_response_payload (&tracker);
   test_decode_response_batch_item_get_payload (&tracker);
+  test_decode_response_batch_item_revoke_payload (&tracker);
   test_decode_username_password_credential (&tracker);
   test_decode_credential_username_password_credential (&tracker);
   test_decode_authentication_username_password_credential (&tracker);
