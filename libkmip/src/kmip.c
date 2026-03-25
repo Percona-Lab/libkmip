@@ -6855,14 +6855,47 @@ kmip_free_objects (KMIP *ctx, ObjectTypes *value)
 void
 kmip_free_server_information (KMIP *ctx, ServerInformation *value)
 {
-  kmip_free_text_string (ctx, value->server_name);
-  kmip_free_text_string (ctx, value->server_serial_number);
-  kmip_free_text_string (ctx, value->server_version);
-  kmip_free_text_string (ctx, value->server_load);
-  kmip_free_text_string (ctx, value->product_name);
-  kmip_free_text_string (ctx, value->build_level);
-  kmip_free_text_string (ctx, value->build_date);
-  kmip_free_text_string (ctx, value->cluster_info);
+  if (ctx == NULL || value == NULL)
+    return;
+
+#define FREE_TEXT_FIELD(field)                          \
+  if (value->field != NULL)                             \
+    {                                                   \
+      kmip_free_text_string (ctx, value->field);        \
+      ctx->free_func (ctx->state, value->field);        \
+      value->field = NULL;                              \
+    }
+
+  FREE_TEXT_FIELD (server_name)
+  FREE_TEXT_FIELD (server_serial_number)
+  FREE_TEXT_FIELD (server_version)
+  FREE_TEXT_FIELD (server_load)
+  FREE_TEXT_FIELD (product_name)
+  FREE_TEXT_FIELD (build_level)
+  FREE_TEXT_FIELD (build_date)
+  FREE_TEXT_FIELD (cluster_info)
+
+#undef FREE_TEXT_FIELD
+
+  if (value->alternative_failover_endpoints != NULL)
+    {
+      AltEndpoints *alt = value->alternative_failover_endpoints;
+      if (alt->endpoint_list != NULL)
+        {
+          LinkedListItem *item = kmip_linked_list_pop (alt->endpoint_list);
+          while (item != NULL)
+            {
+              kmip_free_text_string (ctx, (TextString *)item->data);
+              ctx->free_func (ctx->state, item->data);
+              ctx->free_func (ctx->state, item);
+              item = kmip_linked_list_pop (alt->endpoint_list);
+            }
+          ctx->free_func (ctx->state, alt->endpoint_list);
+          alt->endpoint_list = NULL;
+        }
+      ctx->free_func (ctx->state, value->alternative_failover_endpoints);
+      value->alternative_failover_endpoints = NULL;
+    }
 }
 
 /*
@@ -12450,6 +12483,10 @@ kmip_encode_response_batch_item (KMIP *ctx, const ResponseBatchItem *value)
 
     case KMIP_OP_REGISTER:
       result = kmip_encode_register_response_payload (ctx, (RegisterResponsePayload *)value->response_payload);
+      break;
+
+    case KMIP_OP_GET:
+      result = kmip_encode_get_response_payload (ctx, (GetResponsePayload *)value->response_payload);
       break;
 
     case KMIP_OP_GET_ATTRIBUTES:
