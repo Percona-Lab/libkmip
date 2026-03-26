@@ -2,3 +2,8 @@
 *.a
 *.lo
 *.so*
+
+/bin/
+/lib/
+/obj/
+/docs/build
