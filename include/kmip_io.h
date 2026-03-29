@@ -13,6 +13,10 @@
 
 #include "kmip.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
 Printing Functions
 */
@@ -94,5 +98,9 @@ void kmip_print_object_types(FILE*, int, ObjectTypes*);
 void kmip_print_query_request_payload(FILE*, int, QueryRequestPayload *);
 void kmip_print_query_response_payload(FILE*, int, QueryResponsePayload *);
 void kmip_print_server_information(FILE*, int, ServerInformation*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* KMIP_IO_H */

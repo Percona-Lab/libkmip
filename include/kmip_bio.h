@@ -12,6 +12,10 @@
 #include <openssl/ssl.h>
 #include "kmip.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct query_response QueryResponse;
 typedef struct locate_response LocateResponse;
 
@@ -44,5 +48,9 @@ int kmip_bio_destroy_symmetric_key_with_context(KMIP *, BIO *, char *, int);
 
 int kmip_bio_query_with_context(KMIP *ctx, BIO *bio, enum query_function queries[], size_t query_count, QueryResponse* query_result);
 int kmip_bio_send_request_encoding(KMIP *, BIO *, char *, int, char **, int *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* KMIP_BIO_H */
