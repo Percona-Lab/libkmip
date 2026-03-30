@@ -92,9 +92,10 @@ demo_calloc(void *state, size_t num, size_t size)
 void *
 demo_realloc(void *state, void *ptr, size_t size)
 {
+    printf("demo_realloc called: state = %p, ptr = %p, size = %zu, ", state, ptr, size);
     void* reptr = realloc(ptr, size);
-    printf("demo_realloc called: state = %p, ptr = %p, size = %zu, reptr = %p\n", state, ptr, size, reptr);
-    return(realloc(reptr, size));
+    printf("reptr = %p\n", reptr);
+    return(reptr);
 }
 
 void
