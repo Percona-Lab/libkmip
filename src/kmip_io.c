@@ -2796,6 +2796,28 @@ kmip_print_get_response_payload(FILE *f, int indent, GetResponsePayload *value)
 }
 
 void
+kmip_print_activate_request_payload(FILE *f, int indent, ActivateRequestPayload *value)
+{
+    fprintf(f, "%*sActivate Request Payload @ %p\n", indent, "", (void *)value);
+
+    if(value != NULL)
+    {
+        kmip_print_text_string(f, indent + 2, "Unique Identifier", value->unique_identifier);
+    }
+}
+
+void
+kmip_print_activate_response_payload(FILE *f, int indent, ActivateResponsePayload *value)
+{
+    fprintf(f, "%*sActivate Response Payload @ %p\n", indent, "", (void *)value);
+
+    if(value != NULL)
+    {
+        kmip_print_text_string(f, indent + 2, "Unique Identifier", value->unique_identifier);
+    }
+}
+
+void
 kmip_print_destroy_request_payload(FILE *f, int indent, DestroyRequestPayload *value)
 {
     fprintf(f, "%*sDestroy Request Payload @ %p\n", indent, "", (void *)value);
@@ -2830,6 +2852,10 @@ kmip_print_request_payload(FILE *f, int indent, enum operation type, void *value
         kmip_print_get_request_payload(f, indent, (GetRequestPayload *)value);
         break;
         
+        case KMIP_OP_ACTIVATE:
+        kmip_print_activate_request_payload(f, indent, value);
+        break;
+
         case KMIP_OP_DESTROY:
         kmip_print_destroy_request_payload(f, indent, value);
         break;
@@ -2857,6 +2883,10 @@ kmip_print_response_payload(FILE *f, int indent, enum operation type, void *valu
         kmip_print_get_response_payload(f, indent, (GetResponsePayload *)value);
         break;
         
+        case KMIP_OP_ACTIVATE:
+        kmip_print_activate_response_payload(f, indent, value);
+        break;
+
         case KMIP_OP_DESTROY:
         kmip_print_destroy_response_payload(f, indent, value);
         break;
