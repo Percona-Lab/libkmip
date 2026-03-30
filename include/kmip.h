@@ -1679,6 +1679,7 @@ int kmip_decode_text_string(KMIP *, enum tag, TextString *);
 int kmip_decode_byte_string(KMIP *, enum tag, ByteString *);
 int kmip_decode_date_time(KMIP *, enum tag, int64 *);
 int kmip_decode_interval(KMIP *, enum tag, uint32 *);
+int kmip_decode_length(KMIP* ctx, uint32*);
 int kmip_decode_name(KMIP *, Name *);
 int kmip_decode_attribute_name(KMIP *, enum attribute_type *);
 int kmip_decode_attribute_v1(KMIP *, Attribute *);
