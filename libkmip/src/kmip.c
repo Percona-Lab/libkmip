@@ -5805,6 +5805,24 @@ kmip_free_private_key (KMIP *ctx, PrivateKey *value)
 }
 
 void
+kmip_free_secret_data (KMIP *ctx, SecretData *value)
+{
+  if (value != NULL)
+    {
+      if (value->key_block != NULL)
+        {
+          kmip_free_key_block (ctx, value->key_block);
+          ctx->free_func (ctx->state, value->key_block);
+          value->key_block = NULL;
+        }
+
+      value->secret_data_type = 0;
+    }
+
+  return;
+}
+
+void
 kmip_free_key_wrapping_specification (KMIP *ctx, KeyWrappingSpecification *value)
 {
   if (value != NULL)
@@ -6030,6 +6048,10 @@ kmip_free_get_response_payload (KMIP *ctx, GetResponsePayload *value)
               kmip_free_private_key (ctx, (PrivateKey *)value->object);
               break;
 
+            case KMIP_OBJTYPE_SECRET_DATA:
+              kmip_free_secret_data (ctx, (SecretData *)value->object);
+              break;
+
             default:
               /* NOTE (ph) Hitting this case means that we don't know */
               /*      what the actual type, size, or value of         */
@@ -6140,6 +6162,54 @@ kmip_free_destroy_response_payload (KMIP *ctx, DestroyResponsePayload *value)
 }
 
 void
+kmip_free_revoke_request_payload (KMIP *ctx, RevokeRequestPayload *value)
+{
+  if (value != NULL)
+    {
+      if (value->unique_identifier != NULL)
+        {
+          kmip_free_text_string (ctx, value->unique_identifier);
+          ctx->free_func (ctx->state, value->unique_identifier);
+          value->unique_identifier = NULL;
+        }
+
+      if (value->revocation_reason != NULL)
+        {
+          if (value->revocation_reason->message != NULL)
+            {
+              kmip_free_text_string (ctx, value->revocation_reason->message);
+              ctx->free_func (ctx->state, value->revocation_reason->message);
+              value->revocation_reason->message = NULL;
+            }
+
+          value->revocation_reason->reason = 0;
+          ctx->free_func (ctx->state, value->revocation_reason);
+          value->revocation_reason = NULL;
+        }
+
+      value->compromise_occurence_date = 0;
+    }
+
+  return;
+}
+
+void
+kmip_free_revoke_response_payload (KMIP *ctx, RevokeResponsePayload *value)
+{
+  if (value != NULL)
+    {
+      if (value->unique_identifier != NULL)
+        {
+          kmip_free_text_string (ctx, value->unique_identifier);
+          ctx->free_func (ctx->state, value->unique_identifier);
+          value->unique_identifier = NULL;
+        }
+    }
+
+  return;
+}
+
+void
 kmip_free_request_batch_item (KMIP *ctx, RequestBatchItem *value)
 {
   if (value != NULL)
@@ -6185,6 +6255,10 @@ kmip_free_request_batch_item (KMIP *ctx, RequestBatchItem *value)
 
             case KMIP_OP_LOCATE:
               kmip_free_locate_request_payload (ctx, (LocateRequestPayload *)value->request_payload);
+              break;
+
+            case KMIP_OP_REVOKE:
+              kmip_free_revoke_request_payload (ctx, (RevokeRequestPayload *)value->request_payload);
               break;
 
             default:
@@ -6270,6 +6344,10 @@ kmip_free_response_batch_item (KMIP *ctx, ResponseBatchItem *value)
 
             case KMIP_OP_LOCATE:
               kmip_free_locate_response_payload (ctx, (LocateResponsePayload *)value->response_payload);
+              break;
+
+            case KMIP_OP_REVOKE:
+              kmip_free_revoke_response_payload (ctx, (RevokeResponsePayload *)value->response_payload);
               break;
 
             default:
@@ -6777,14 +6855,47 @@ kmip_free_objects (KMIP *ctx, ObjectTypes *value)
 void
 kmip_free_server_information (KMIP *ctx, ServerInformation *value)
 {
-  kmip_free_text_string (ctx, value->server_name);
-  kmip_free_text_string (ctx, value->server_serial_number);
-  kmip_free_text_string (ctx, value->server_version);
-  kmip_free_text_string (ctx, value->server_load);
-  kmip_free_text_string (ctx, value->product_name);
-  kmip_free_text_string (ctx, value->build_level);
-  kmip_free_text_string (ctx, value->build_date);
-  kmip_free_text_string (ctx, value->cluster_info);
+  if (ctx == NULL || value == NULL)
+    return;
+
+#define FREE_TEXT_FIELD(field)                          \
+  if (value->field != NULL)                             \
+    {                                                   \
+      kmip_free_text_string (ctx, value->field);        \
+      ctx->free_func (ctx->state, value->field);        \
+      value->field = NULL;                              \
+    }
+
+  FREE_TEXT_FIELD (server_name)
+  FREE_TEXT_FIELD (server_serial_number)
+  FREE_TEXT_FIELD (server_version)
+  FREE_TEXT_FIELD (server_load)
+  FREE_TEXT_FIELD (product_name)
+  FREE_TEXT_FIELD (build_level)
+  FREE_TEXT_FIELD (build_date)
+  FREE_TEXT_FIELD (cluster_info)
+
+#undef FREE_TEXT_FIELD
+
+  if (value->alternative_failover_endpoints != NULL)
+    {
+      AltEndpoints *alt = value->alternative_failover_endpoints;
+      if (alt->endpoint_list != NULL)
+        {
+          LinkedListItem *item = kmip_linked_list_pop (alt->endpoint_list);
+          while (item != NULL)
+            {
+              kmip_free_text_string (ctx, (TextString *)item->data);
+              ctx->free_func (ctx->state, item->data);
+              ctx->free_func (ctx->state, item);
+              item = kmip_linked_list_pop (alt->endpoint_list);
+            }
+          ctx->free_func (ctx->state, alt->endpoint_list);
+          alt->endpoint_list = NULL;
+        }
+      ctx->free_func (ctx->state, value->alternative_failover_endpoints);
+      value->alternative_failover_endpoints = NULL;
+    }
 }
 
 /*
@@ -12372,6 +12483,10 @@ kmip_encode_response_batch_item (KMIP *ctx, const ResponseBatchItem *value)
 
     case KMIP_OP_REGISTER:
       result = kmip_encode_register_response_payload (ctx, (RegisterResponsePayload *)value->response_payload);
+      break;
+
+    case KMIP_OP_GET:
+      result = kmip_encode_get_response_payload (ctx, (GetResponsePayload *)value->response_payload);
       break;
 
     case KMIP_OP_GET_ATTRIBUTES:
