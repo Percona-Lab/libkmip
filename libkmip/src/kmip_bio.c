@@ -289,7 +289,7 @@ kmip_bio_register_symmetric_key (BIO *bio, TemplateAttribute *template_attribute
   // crp.object.symmetric_key.key_block->key_compression_type = KMIP_KEYCOMP_EC_PUB_UNCOMPRESSED;
 
   ByteString bs;
-  bs.value = key;
+  bs.value = (uint8_t *)key;
   bs.size  = key_len;
 
   KeyValue kv;
@@ -2693,7 +2693,7 @@ kmip_bio_register_secret (BIO *bio, TemplateAttribute *template_attribute, char 
   crp.object.secret_data.key_block->key_format_type = KMIP_KEYFORMAT_OPAQUE;
 
   ByteString bs;
-  bs.value = secret;
+  bs.value = (uint8_t *)secret;
   bs.size  = secret_len;
 
   KeyValue kv;
