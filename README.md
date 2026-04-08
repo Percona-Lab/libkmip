@@ -18,12 +18,14 @@ For more information on libkmip, check out the project [Documentation][docs].
 
 ## Build
 
-Build with CMake:
+Configure and build with CMake:
 
 ```bash
-cmake -S . -B cmake-build-debug
+cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug
 cmake --build cmake-build-debug -j
 ```
+
+By default, `BUILD_KMIP_TESTS` is `OFF`.
 
 ## Run Demos
 
@@ -34,26 +36,41 @@ For example:
 ./cmake-build-debug/libkmip/src/demo_query
 ```
 
-## Run Tests (ASAN)
+## Run Tests
 
-An AddressSanitizer + LeakSanitizer test target is available for
-`libkmip/src/tests.c`:
+Enable tests at configure time, then run them with CTest:
 
 ```bash
-cmake --build cmake-build-debug --target run_tests_asan
+cmake -S . -B cmake-build-tests -DCMAKE_BUILD_TYPE=Debug -DBUILD_KMIP_TESTS=ON
+cmake --build cmake-build-tests -j
+ctest --test-dir cmake-build-tests --output-on-failure
 ```
 
-This command builds and runs `kmip_tests_asan` with leak detection enabled.
+`BUILD_KMIP_TESTS=ON` builds `libkmip/src/tests.c` into the `kmip_tests` target
+and registers it with CTest.
+
+## Build with ASAN
+
+AddressSanitizer can be enabled with `WITH_ASAN=ON` (Clang/GCC):
+
+```bash
+cmake -S . -B cmake-build-asan -DCMAKE_BUILD_TYPE=Debug -DWITH_ASAN=ON -DBUILD_KMIP_TESTS=ON
+cmake --build cmake-build-asan -j
+ctest --test-dir cmake-build-asan --output-on-failure
+```
 
 ## Installation
 
-You can also install libkmip from source using `make`:
+Install using CMake:
 
 ```bash
-cd libkmip
-make
-make install
+cmake -S . -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build cmake-build-release -j
+cmake --install cmake-build-release
 ```
+
+To install to a custom prefix, add
+`-DCMAKE_INSTALL_PREFIX=/your/prefix/path` when configuring.
 
 See [Installation][install] for more information.
 
