@@ -21,8 +21,21 @@ namespace kmipcore {
   // Constants
   // ---------------------------------------------------------------------------
 
-  /** Maximum encoded KMIP message size handled by default helpers. */
-  inline constexpr std::size_t KMIP_MAX_MESSAGE_SIZE = 8192;
+  /**
+   * Default maximum encoded KMIP message size used by helpers.
+   *
+   * KMIP specification defines Maximum Response Size as an optional header
+   * field and does not mandate a fixed global cap; this value is an
+   * implementation default.
+   */
+  inline constexpr std::size_t KMIP_MAX_MESSAGE_SIZE = 1024 * 1024;
+  /**
+   * Absolute response-size guard applied on receive path.
+   *
+   * This hard cap prevents unbounded memory growth even if a caller passes an
+   * excessively large Maximum Response Size hint.
+   */
+  inline constexpr std::size_t KMIP_MAX_MESSAGE_HARD_LIMIT = 16 * 1024 * 1024;
   /** Suggested buffer size for human-readable error messages. */
   inline constexpr std::size_t KMIP_ERROR_MESSAGE_SIZE = 200;
 

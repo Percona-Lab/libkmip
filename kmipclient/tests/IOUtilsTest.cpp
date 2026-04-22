@@ -21,6 +21,7 @@
 #include "kmipclient/KmipIOException.hpp"
 #include "kmipclient/NetClientOpenSSL.hpp"
 #include "kmipcore/kmip_basics.hpp"
+#include "kmipcore/kmip_enums.hpp"
 #include "kmipcore/kmip_logger.hpp"
 #include "kmipcore/serialization_buffer.hpp"
 
@@ -166,6 +167,69 @@ TEST(IOUtilsTest, SendFailsIfTransportStopsProgress) {
   EXPECT_THROW(
       io.do_exchange(request, response, 1024), kmipclient::KmipIOException
   );
+}
+
+TEST(IOUtilsTest, AcceptsResponsesLargerThanLegacy64KiBLimit) {
+  FakeNetClient nc;
+  const std::size_t payload_size = 128 * 1024;
+  nc.response_bytes = build_response_with_payload(
+      std::vector<uint8_t>(payload_size, 0xAB)
+  );
+
+  kmipclient::IOUtils io(nc);
+  const std::vector<uint8_t> request{0x01};
+  std::vector<uint8_t> response;
+
+  ASSERT_NO_THROW(
+      io.do_exchange(request, response, kmipcore::KMIP_MAX_MESSAGE_SIZE)
+  );
+  EXPECT_EQ(response, nc.response_bytes);
+}
+
+TEST(IOUtilsTest, RejectsResponseThatExceedsCallerLimit) {
+  FakeNetClient nc;
+  nc.response_bytes =
+      build_response_with_payload(std::vector<uint8_t>(2048, 0x11));
+
+  kmipclient::IOUtils io(nc);
+  const std::vector<uint8_t> request{0x01};
+  std::vector<uint8_t> response;
+
+  try {
+    io.do_exchange(request, response, 1024);
+    FAIL() << "Expected do_exchange to reject oversized response";
+  } catch (const kmipclient::KmipIOException &e) {
+    EXPECT_EQ(e.code().value(), kmipcore::KMIP_EXCEED_MAX_MESSAGE_SIZE);
+    EXPECT_NE(std::string(e.what()).find("allowed: 1024"), std::string::npos);
+  }
+}
+
+TEST(IOUtilsTest, RejectsResponseThatExceedsHardLimitEvenIfCallerLimitIsHigher) {
+  FakeNetClient nc;
+  nc.response_bytes = build_response_with_payload(
+      std::vector<uint8_t>(kmipcore::KMIP_MAX_MESSAGE_HARD_LIMIT + 1, 0x22)
+  );
+
+  kmipclient::IOUtils io(nc);
+  const std::vector<uint8_t> request{0x01};
+  std::vector<uint8_t> response;
+
+  try {
+    io.do_exchange(
+        request,
+        response,
+        kmipcore::KMIP_MAX_MESSAGE_HARD_LIMIT * 2
+    );
+    FAIL() << "Expected do_exchange to enforce hard response limit";
+  } catch (const kmipclient::KmipIOException &e) {
+    EXPECT_EQ(e.code().value(), kmipcore::KMIP_EXCEED_MAX_MESSAGE_SIZE);
+    EXPECT_NE(
+        std::string(e.what()).find(
+            "allowed: " + std::to_string(kmipcore::KMIP_MAX_MESSAGE_HARD_LIMIT)
+        ),
+        std::string::npos
+    );
+  }
 }
 
 TEST(IOUtilsTest, DebugLoggingRedactsSensitiveTtlvFields) {

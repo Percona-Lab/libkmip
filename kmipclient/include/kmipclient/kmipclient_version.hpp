@@ -25,7 +25,7 @@
 /** @brief kmipclient semantic version minor component. */
 #define KMIPCLIENT_VERSION_MINOR 2
 /** @brief kmipclient semantic version patch component. */
-#define KMIPCLIENT_VERSION_PATCH 0
+#define KMIPCLIENT_VERSION_PATCH 1
 
 /** @brief Internal helper for macro-stringification. */
 #define KMIPCLIENT_STRINGIFY_I(x) #x

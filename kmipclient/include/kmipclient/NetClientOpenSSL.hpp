@@ -47,6 +47,9 @@ namespace kmipclient {
      * @param serverCaCertFn Path to trusted server CA/certificate in PEM.
      * @param timeout_ms Timeout in milliseconds applied to TCP connect, TLS
      *        handshake, and each read/write operation.
+     * @param tls_verification TLS peer/hostname verification settings.
+     *        Defaults to {false, false} (no peer verification, no hostname
+     *        verification). Call set_tls_verification() afterwards to change.
      */
     NetClientOpenSSL(
         const std::string &host,
@@ -54,7 +57,8 @@ namespace kmipclient {
         const std::string &clientCertificateFn,
         const std::string &clientKeyFn,
         const std::string &serverCaCertFn,
-        int timeout_ms = DEFAULT_TIMEOUT_MS
+        int timeout_ms = DEFAULT_TIMEOUT_MS,
+        TlsVerificationOptions tls_verification = {false, false}
     );
     /** @brief Releases OpenSSL resources and closes any open connection. */
     ~NetClientOpenSSL() override;

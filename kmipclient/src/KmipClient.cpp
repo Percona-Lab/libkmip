@@ -25,8 +25,10 @@
 #include "kmipcore/response_parser.hpp"
 
 #include <algorithm>
+#include <array>
 #include <optional>
 #include <stdexcept>
+#include <unordered_set>
 
 namespace kmipclient {
 
@@ -602,32 +604,13 @@ namespace kmipclient {
          ++batch) {
       const std::size_t remaining = max_ids - result.size();
       const std::size_t page_size = std::min(remaining, MAX_ITEMS_IN_BATCH);
-
-      auto request = make_request_message();
-      const auto batch_item_id = request.add_batch_item(
-          kmipcore::LocateRequest(
-              true,
-              group,
-              o_type,
-              page_size,
-              offset,
-              request.getHeader().getProtocolVersion()
-          )
-      );
-
-      std::vector<uint8_t> response_bytes;
-      io->do_exchange(
-          request.serialize(), response_bytes, request.getMaxResponseSize()
-      );
-
-      kmipcore::ResponseParser rf(response_bytes, request);
-      auto response =
-          rf.getResponseByBatchItemId<kmipcore::LocateResponseBatchItem>(
-              batch_item_id
-          );
-      auto got = std::vector<std::string>(
-          response.getUniqueIdentifiers().begin(),
-          response.getUniqueIdentifiers().end()
+      std::optional<std::size_t> located_items;
+      auto got = op_locate_page_by_group(
+          group,
+          o_type,
+          offset,
+          page_size,
+          &located_items
       );
 
       if (got.empty()) {
@@ -638,10 +621,7 @@ namespace kmipclient {
       const std::size_t to_take = std::min(remaining, got.size());
       std::copy_n(got.begin(), to_take, std::back_inserter(result));
 
-      if (const auto located_items =
-              response.getLocatePayload().getLocatedItems();
-          located_items.has_value() && *located_items >= 0 &&
-          offset >= static_cast<std::size_t>(*located_items)) {
+      if (located_items.has_value() && offset >= *located_items) {
         break;
       }
 
@@ -653,9 +633,131 @@ namespace kmipclient {
     return result;
   }
 
+  std::vector<std::string> KmipClient::op_locate_page_by_group(
+      const std::string &group,
+      object_type o_type,
+      std::size_t offset,
+      std::size_t page_size,
+      std::optional<std::size_t> *located_items
+  ) const {
+    if (located_items != nullptr) {
+      *located_items = std::nullopt;
+    }
+    if (page_size == 0) {
+      return {};
+    }
+
+    auto request = make_request_message();
+    const auto batch_item_id = request.add_batch_item(
+        kmipcore::LocateRequest(
+            !group.empty(),
+            group,
+            o_type,
+            page_size,
+            offset,
+            request.getHeader().getProtocolVersion()
+        )
+    );
+
+    std::vector<uint8_t> response_bytes;
+    io->do_exchange(
+        request.serialize(), response_bytes, request.getMaxResponseSize()
+    );
+
+    kmipcore::ResponseParser rf(response_bytes, request);
+    auto response = rf.getResponseByBatchItemId<kmipcore::LocateResponseBatchItem>(
+        batch_item_id
+    );
+
+    if (located_items != nullptr) {
+      const auto total_items = response.getLocatePayload().getLocatedItems();
+      if (total_items.has_value() && *total_items >= 0) {
+        *located_items = static_cast<std::size_t>(*total_items);
+      }
+    }
+
+    return std::vector<std::string>(
+        response.getUniqueIdentifiers().begin(),
+        response.getUniqueIdentifiers().end()
+    );
+  }
+
   std::vector<std::string>
       KmipClient::op_all(object_type o_type, std::size_t max_ids) const {
-    return op_locate_by_group("", o_type, max_ids);
+    if (max_ids == 0) {
+      return {};
+    }
+
+    auto result = op_locate_by_group("", o_type, max_ids);
+    if (result.size() >= max_ids) {
+      return result;
+    }
+
+    // Some servers do not provide stable global ordering for ungrouped
+    // Locate pages. Probe again with smaller windows and deduplicate so we can
+    // recover additional IDs without lifting safety caps.
+    std::unordered_set<std::string> seen(result.begin(), result.end());
+    static constexpr std::array<std::size_t, 3> probe_page_sizes{
+        256,
+        64,
+        16,
+    };
+
+    for (const auto probe_page_size : probe_page_sizes) {
+      std::size_t offset = 0;
+      for (std::size_t batch = 0;
+           batch < MAX_BATCHES_IN_SEARCH && result.size() < max_ids;
+           ++batch) {
+        std::optional<std::size_t> located_items;
+        auto page = op_all_page(
+            o_type,
+            offset,
+            probe_page_size,
+            &located_items
+        );
+        if (page.empty()) {
+          break;
+        }
+
+        bool added_any = false;
+        for (const auto &id : page) {
+          if (!seen.insert(id).second) {
+            continue;
+          }
+          result.push_back(id);
+          added_any = true;
+          if (result.size() >= max_ids) {
+            break;
+          }
+        }
+
+        if (located_items.has_value() && offset + probe_page_size >= *located_items) {
+          break;
+        }
+        if (!added_any && page.size() < probe_page_size) {
+          break;
+        }
+
+        offset += probe_page_size;
+      }
+
+      if (result.size() >= max_ids) {
+        break;
+      }
+    }
+
+    return result;
+  }
+
+  std::vector<std::string> KmipClient::op_all_page(
+      object_type o_type,
+      std::size_t offset,
+      std::size_t page_size,
+      std::optional<std::size_t> *located_items
+  ) const {
+    return op_locate_page_by_group(
+        "", o_type, offset, page_size, located_items
+    );
   }
 
   std::vector<kmipcore::ProtocolVersion>

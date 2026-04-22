@@ -65,7 +65,7 @@ namespace kmipclient {
         int timeout_ms,
         kmipcore::ProtocolVersion version = kmipcore::KMIP_VERSION_1_4,
         const std::shared_ptr<kmipcore::Logger> &logger = {},
-        NetClient::TlsVerificationOptions tls_verification = {},
+        NetClient::TlsVerificationOptions tls_verification = {false, false},
         bool close_on_destroy = true
     )
       : m_net_client(std::make_shared<NetClientOpenSSL>(
@@ -74,10 +74,10 @@ namespace kmipclient {
             clientCertificateFn,
             clientKeyFn,
             serverCaCertFn,
-            timeout_ms
+            timeout_ms,
+            tls_verification
         )),
         m_client(m_net_client, logger, version, close_on_destroy) {
-      m_net_client->set_tls_verification(tls_verification);
       m_net_client->connect();
     };
 
@@ -147,7 +147,7 @@ namespace kmipclient {
         int timeout_ms,
         kmipcore::ProtocolVersion version = kmipcore::KMIP_VERSION_1_4,
         const std::shared_ptr<kmipcore::Logger> &logger = {},
-        NetClient::TlsVerificationOptions tls_verification = {},
+        NetClient::TlsVerificationOptions tls_verification = {false, false},
         bool close_on_destroy = true
     ) {
       return std::make_shared<Kmip>(
