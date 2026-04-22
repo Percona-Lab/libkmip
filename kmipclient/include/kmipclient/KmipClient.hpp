@@ -26,6 +26,7 @@
 
 #include <ctime>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -33,9 +34,9 @@ namespace kmipclient {
 
   /** Maximum number of KMIP locate response batches processed by search
    * helpers. */
-  constexpr size_t MAX_BATCHES_IN_SEARCH = 64;
+  constexpr size_t MAX_BATCHES_IN_SEARCH = 256;
   /** Maximum number of response items expected per single KMIP batch. */
-  constexpr size_t MAX_ITEMS_IN_BATCH = 1024;
+  constexpr size_t MAX_ITEMS_IN_BATCH = 256;
 
   class IOUtils;
   /**
@@ -233,6 +234,28 @@ namespace kmipclient {
         std::size_t max_ids = MAX_BATCHES_IN_SEARCH * MAX_ITEMS_IN_BATCH
     ) const;
 
+    /**
+     * @brief Executes one paged KMIP Locate request using object group filter.
+     * @param group Group name to match; empty string disables group filtering.
+     * @param o_type KMIP object type to search.
+     * @param offset Number of initial matches to skip.
+     * @param page_size Maximum number of IDs requested for this page.
+     * @param located_items Optional output with total located item count from
+     *        response payload when available and non-negative; set to
+     *        std::nullopt otherwise.
+     * @return IDs from exactly one Locate response page.
+     *
+     * When @p page_size is zero, returns an empty vector and sets
+     * @p located_items to std::nullopt (if provided).
+     */
+    [[nodiscard]] std::vector<std::string> op_locate_page_by_group(
+        const std::string &group,
+        object_type o_type,
+        std::size_t offset,
+        std::size_t page_size,
+        std::optional<std::size_t> *located_items = nullptr
+    ) const;
+
 
     /**
      * @brief Executes KMIP Revoke for a managed object.
@@ -269,6 +292,27 @@ namespace kmipclient {
     [[nodiscard]] std::vector<std::string> op_all(
         object_type o_type,
         std::size_t max_ids = MAX_BATCHES_IN_SEARCH * MAX_ITEMS_IN_BATCH
+    ) const;
+
+    /**
+     * @brief Executes one paged KMIP Locate request without name/group
+     * filters.
+     * @param o_type KMIP object type to fetch.
+     * @param offset Number of initial matches to skip.
+     * @param page_size Maximum number of IDs requested for this page.
+     * @param located_items Optional output with total located item count from
+     *        response payload when available and non-negative; set to
+     *        std::nullopt otherwise.
+     * @return IDs from exactly one Locate response page.
+     *
+     * When @p page_size is zero, returns an empty vector and sets
+     * @p located_items to std::nullopt (if provided).
+     */
+    [[nodiscard]] std::vector<std::string> op_all_page(
+        object_type o_type,
+        std::size_t offset,
+        std::size_t page_size,
+        std::optional<std::size_t> *located_items = nullptr
     ) const;
 
 

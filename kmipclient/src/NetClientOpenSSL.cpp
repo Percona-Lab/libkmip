@@ -297,7 +297,8 @@ namespace kmipclient {
       const std::string &clientCertificateFn,
       const std::string &clientKeyFn,
       const std::string &serverCaCertFn,
-      int timeout_ms
+      int timeout_ms,
+      TlsVerificationOptions tls_verification
   )
     : NetClient(
           host,
@@ -306,7 +307,9 @@ namespace kmipclient {
           clientKeyFn,
           serverCaCertFn,
           timeout_ms
-      ) {}
+        ) {
+    m_tls_verification = tls_verification;
+  }
 
   NetClientOpenSSL::~NetClientOpenSSL() {
     // Avoid calling virtual methods from destructor.

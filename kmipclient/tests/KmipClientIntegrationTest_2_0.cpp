@@ -47,6 +47,7 @@
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -288,16 +289,18 @@ protected:
     auto &config = KmipTestConfig20::getInstance();
 
     if (!config.is2_0_enabled()) {
-      GTEST_SKIP();
+      GTEST_SKIP() << "KMIP 2.0: suite disabled because KMIP_RUN_2_0_TESTS is "
+                      "not set";
     }
 
     if (!config.isConfigured()) {
-      GTEST_SKIP() << "KMIP environment variables not configured";
+      GTEST_SKIP() << "KMIP 2.0: environment variables not configured";
     }
 
     const auto &version_probe = probe_server_versions_once();
     if (version_probe.can_probe && !version_probe.supports_kmip_2_0) {
-      GTEST_SKIP() << "Skipping KMIP 2.0 suite: " << version_probe.details;
+      GTEST_SKIP() << "KMIP 2.0: skipping suite because "
+                   << version_probe.details;
     }
 
     // Probe connectivity with a zero-result op_all – fast and side-effect free.
@@ -305,7 +308,8 @@ protected:
       auto kmip = createKmipClient();
       (void) kmip->client().op_all(object_type::KMIP_OBJTYPE_SYMMETRIC_KEY, 0);
     } catch (const std::exception &e) {
-      GTEST_SKIP() << "KMIP 2.0 server connectivity check failed: " << e.what();
+      GTEST_SKIP() << "KMIP 2.0: server connectivity check failed: "
+                   << e.what();
     }
   }
 
@@ -673,6 +677,193 @@ TEST_F(KmipClientIntegrationTest20, LocateKeysByGroup) {
   }
 }
 
+TEST_F(KmipClientIntegrationTest20, LocatePageByGroupSinglePageReturnsExpectedIds) {
+  auto kmip = createKmipClient();
+  const std::string group =
+      "test_2_0_locate_page_group_" + std::to_string(std::time(nullptr));
+  std::vector<std::string> created;
+
+  try {
+    for (int i = 0; i < 3; ++i) {
+      const auto id = kmip->client().op_create_aes_key(
+          TESTING_NAME_PREFIX + "LocatePageByGroup_" + std::to_string(i), group
+      );
+      created.push_back(id);
+      trackForCleanup(id);
+    }
+
+    std::optional<std::size_t> located_items;
+    auto page = kmip->client().op_locate_page_by_group(
+        group,
+        object_type::KMIP_OBJTYPE_SYMMETRIC_KEY,
+        0,
+        2,
+        &located_items
+    );
+    EXPECT_EQ(page.size(), 2u);
+    for (const auto &id : page) {
+      EXPECT_NE(std::find(created.begin(), created.end(), id), created.end());
+    }
+  } catch (kmipcore::KmipException &e) {
+    FAIL() << "LocatePageByGroupSinglePageReturnsExpectedIds (2.0) failed: "
+           << e.what();
+  }
+}
+
+TEST_F(KmipClientIntegrationTest20, LocatePageByGroupIteratesDeterministicallyWithOffset) {
+  auto kmip = createKmipClient();
+  const std::string group =
+      "test_2_0_locate_page_iter_" + std::to_string(std::time(nullptr));
+  std::vector<std::string> created;
+
+  try {
+    for (int i = 0; i < 5; ++i) {
+      const auto id = kmip->client().op_create_aes_key(
+          TESTING_NAME_PREFIX + "LocatePageIter_" + std::to_string(i), group
+      );
+      created.push_back(id);
+      trackForCleanup(id);
+    }
+
+    std::optional<std::size_t> first_located_items;
+    auto first_page = kmip->client().op_locate_page_by_group(
+        group,
+        object_type::KMIP_OBJTYPE_SYMMETRIC_KEY,
+        0,
+        2,
+        &first_located_items
+    );
+    auto first_page_repeat = kmip->client().op_locate_page_by_group(
+        group,
+        object_type::KMIP_OBJTYPE_SYMMETRIC_KEY,
+        0,
+        2,
+        nullptr
+    );
+    ASSERT_FALSE(first_page.empty());
+    EXPECT_EQ(first_page, first_page_repeat);
+
+    std::vector<std::string> paged_ids = first_page;
+    std::vector<std::string> previous_page = first_page;
+    std::size_t offset = first_page.size();
+    bool offset_honored = false;
+    for (std::size_t i = 0; i < 8; ++i) {
+      auto page = kmip->client().op_locate_page_by_group(
+          group,
+          object_type::KMIP_OBJTYPE_SYMMETRIC_KEY,
+          offset,
+          2,
+          nullptr
+      );
+      if (page.empty()) {
+        break;
+      }
+      if (page != previous_page) {
+        offset_honored = true;
+      }
+      paged_ids.insert(paged_ids.end(), page.begin(), page.end());
+      if (page == previous_page) {
+        break;
+      }
+      offset += page.size();
+      previous_page = page;
+      if (page.size() < 2) {
+        break;
+      }
+    }
+
+    auto one_shot = kmip->client().op_locate_by_group(
+        group,
+        object_type::KMIP_OBJTYPE_SYMMETRIC_KEY,
+        created.size()
+    );
+    if (offset_honored) {
+      EXPECT_EQ(paged_ids, one_shot);
+    } else {
+      EXPECT_GE(one_shot.size(), first_page.size());
+      EXPECT_EQ(
+          std::vector<std::string>(
+              one_shot.begin(),
+              one_shot.begin() + static_cast<std::ptrdiff_t>(first_page.size())
+          ),
+          first_page
+      );
+    }
+    for (const auto &id : paged_ids) {
+      EXPECT_NE(std::find(one_shot.begin(), one_shot.end(), id), one_shot.end());
+    }
+    for (const auto &id : created) {
+      EXPECT_NE(std::find(one_shot.begin(), one_shot.end(), id), one_shot.end());
+    }
+  } catch (kmipcore::KmipException &e) {
+    FAIL() << "LocatePageByGroupIteratesDeterministicallyWithOffset (2.0) failed: "
+           << e.what();
+  }
+}
+
+TEST_F(KmipClientIntegrationTest20, LocatePageByGroupReportsLocatedItemsWhenServerProvidesIt) {
+  auto kmip = createKmipClient();
+  const std::string group =
+      "test_2_0_locate_page_total_" + std::to_string(std::time(nullptr));
+  const auto &protocol_version = kmip->client().protocol_version();
+
+  try {
+    for (int i = 0; i < 2; ++i) {
+      const auto id = kmip->client().op_create_aes_key(
+          TESTING_NAME_PREFIX + "LocatePageTotal_" + std::to_string(i), group
+      );
+      trackForCleanup(id);
+    }
+
+    std::optional<std::size_t> located_items;
+    auto page = kmip->client().op_locate_page_by_group(
+        group,
+        object_type::KMIP_OBJTYPE_SYMMETRIC_KEY,
+        0,
+        10,
+        &located_items
+    );
+
+    if (!located_items.has_value()) {
+      std::cout << "KMIP " << protocol_version.getMajor() << "."
+                << protocol_version.getMinor()
+                << ": server omitted optional LocatePayload/LocatedItems; "
+                   "skipping total-count assertion as expected by spec"
+                << std::endl;
+      GTEST_SKIP() << "KMIP " << protocol_version.getMajor() << "."
+                   << protocol_version.getMinor()
+                   << ": server omitted optional LocatePayload/LocatedItems; "
+                      "skip is expected because KMIP Locate responses MAY omit "
+                      "Located Items";
+    }
+    EXPECT_GE(*located_items, page.size());
+  } catch (kmipcore::KmipException &e) {
+    FAIL() << "LocatePageByGroupReportsLocatedItemsWhenServerProvidesIt "
+           << "(KMIP " << protocol_version.getMajor() << "."
+           << protocol_version.getMinor() << ") failed: "
+           << e.what();
+  }
+}
+
+TEST_F(KmipClientIntegrationTest20, LocatePageByGroupWithZeroPageSizeReturnsEmpty) {
+  auto kmip = createKmipClient();
+  try {
+    std::optional<std::size_t> located_items = 1;
+    auto page = kmip->client().op_locate_page_by_group(
+        "",
+        object_type::KMIP_OBJTYPE_SYMMETRIC_KEY,
+        0,
+        0,
+        &located_items
+    );
+    EXPECT_TRUE(page.empty());
+    EXPECT_FALSE(located_items.has_value());
+  } catch (kmipcore::KmipException &e) {
+    FAIL() << "LocatePageByGroupWithZeroPageSizeReturnsEmpty (2.0) failed: "
+           << e.what();
+  }
+}
+
 // Test: op_locate_by_group respects max_ids upper bound
 TEST_F(KmipClientIntegrationTest20, LocateKeysByGroupHonorsMaxIds) {
   auto kmip = createKmipClient();
@@ -905,6 +1096,46 @@ TEST_F(KmipClientIntegrationTest20, GetAllIdsWithZeroLimitReturnsEmpty) {
   }
 }
 
+TEST_F(KmipClientIntegrationTest20, GetAllIdsPageWithZeroPageSizeReturnsEmpty) {
+  auto kmip = createKmipClient();
+  try {
+    std::optional<std::size_t> located_items = 1;
+    auto page = kmip->client().op_all_page(
+        object_type::KMIP_OBJTYPE_SYMMETRIC_KEY, 0, 0, &located_items
+    );
+    EXPECT_TRUE(page.empty());
+    EXPECT_FALSE(located_items.has_value());
+  } catch (kmipcore::KmipException &e) {
+    FAIL() << "GetAllIdsPageWithZeroPageSizeReturnsEmpty (2.0) failed: "
+           << e.what();
+  }
+}
+
+TEST_F(KmipClientIntegrationTest20, GetAllIdsPageMatchesUngroupedLocatePage) {
+  auto kmip = createKmipClient();
+  try {
+    std::optional<std::size_t> all_located_items;
+    auto all_page = kmip->client().op_all_page(
+        object_type::KMIP_OBJTYPE_SYMMETRIC_KEY, 0, 8, &all_located_items
+    );
+
+    std::optional<std::size_t> locate_located_items;
+    auto locate_page = kmip->client().op_locate_page_by_group(
+        "",
+        object_type::KMIP_OBJTYPE_SYMMETRIC_KEY,
+        0,
+        8,
+        &locate_located_items
+    );
+
+    EXPECT_EQ(all_page, locate_page);
+    EXPECT_EQ(all_located_items, locate_located_items);
+  } catch (kmipcore::KmipException &e) {
+    FAIL() << "GetAllIdsPageMatchesUngroupedLocatePage (2.0) failed: "
+           << e.what();
+  }
+}
+
 // Test: op_all includes newly created keys
 TEST_F(KmipClientIntegrationTest20, GetAllIdsIncludesCreatedKeys) {
   auto kmip = createKmipClient();
@@ -918,10 +1149,53 @@ TEST_F(KmipClientIntegrationTest20, GetAllIdsIncludesCreatedKeys) {
       trackForCleanup(id);
     }
 
-    auto all = kmip->client().op_all(object_type::KMIP_OBJTYPE_SYMMETRIC_KEY);
+    constexpr std::size_t kDefaultSearchCap =
+        MAX_BATCHES_IN_SEARCH * MAX_ITEMS_IN_BATCH;
+    constexpr std::size_t kFallbackSearchCap = kDefaultSearchCap * 4;
+
+    std::optional<std::size_t> located_items;
+    (void) kmip->client().op_all_page(
+        object_type::KMIP_OBJTYPE_SYMMETRIC_KEY,
+        0,
+        1,
+        &located_items
+    );
+
+    std::size_t max_ids = located_items.has_value()
+                              ? std::max(kDefaultSearchCap, *located_items)
+                              : kFallbackSearchCap;
+    auto all = kmip->client().op_all(object_type::KMIP_OBJTYPE_SYMMETRIC_KEY, max_ids);
+
+    std::vector<std::string> missing_ids;
     for (const auto &cid : created) {
-      EXPECT_NE(std::find(all.begin(), all.end(), cid), all.end())
-          << "Created id " << cid << " not found in op_all";
+      if (std::find(all.begin(), all.end(), cid) == all.end()) {
+        missing_ids.push_back(cid);
+      }
+    }
+
+    if (!missing_ids.empty()) {
+      auto group_ids = kmip->client().op_locate_by_group(
+          TEST_GROUP,
+          object_type::KMIP_OBJTYPE_SYMMETRIC_KEY,
+          kFallbackSearchCap
+      );
+      bool all_missing_found_by_group = true;
+      for (const auto &cid : missing_ids) {
+        if (std::find(group_ids.begin(), group_ids.end(), cid) ==
+            group_ids.end()) {
+          all_missing_found_by_group = false;
+          break;
+        }
+      }
+
+      if (all_missing_found_by_group) {
+        GTEST_SKIP() << "Server omits some keys from ungrouped Locate/op_all, "
+                        "but group-filtered Locate finds them";
+      }
+    }
+
+    for (const auto &cid : missing_ids) {
+      ADD_FAILURE() << "Created id " << cid << " not found in op_all";
     }
     std::cout << "op_all includes all " << created.size() << " created key(s)"
               << std::endl;

@@ -21,6 +21,7 @@
 #include "kmipcore/kmip_formatter.hpp"
 #include "kmipcore/kmip_logger.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <sstream>
@@ -113,11 +114,14 @@ namespace kmipclient {
     read_exact(msg_len_buf);
 
     const int32_t length = read_int32_be(std::span(msg_len_buf).subspan(4, 4));
-    if (length < 0 || static_cast<size_t>(length) > max_message_size) {
+    const std::size_t effective_limit =
+        std::min(max_message_size, kmipcore::KMIP_MAX_MESSAGE_HARD_LIMIT);
+    if (length < 0 || static_cast<size_t>(length) > effective_limit) {
       std::ostringstream oss;
-      oss << "Message too long. Length: " << length;
+      oss << "Message too long. Length: " << length
+          << ", allowed: " << effective_limit;
       throw KmipIOException(
-          kmipcore::KMIP_IO_FAILURE,
+          kmipcore::KMIP_EXCEED_MAX_MESSAGE_SIZE,
           oss.str()
       );
     }

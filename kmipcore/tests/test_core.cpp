@@ -859,6 +859,12 @@ void test_max_response_size_range_check() {
   std::cout << "MaxResponseSize range check test passed" << std::endl;
 }
 
+void test_default_max_response_size() {
+  RequestMessage req;
+  assert(req.getMaxResponseSize() == KMIP_MAX_MESSAGE_SIZE);
+  std::cout << "Default MaxResponseSize test passed" << std::endl;
+}
+
 int main() {
   test_integer();
   test_structure();
@@ -874,5 +880,6 @@ int main() {
   test_response_required_fields();
   test_request_header_authentication();
   test_max_response_size_range_check();
+  test_default_max_response_size();
   return 0;
 }
