@@ -1491,12 +1491,12 @@ typedef int64 intptr;
 #define CHECK_ENUM(A, B, C)                                                                                            \
   do                                                                                                                   \
     {                                                                                                                  \
-      int result = kmip_check_enum_value ((A)->version, (B), (C));                                                     \
-      if (result != KMIP_OK)                                                                                           \
+      int __result = kmip_check_enum_value ((A)->version, (B), (C));                                                     \
+      if (__result != KMIP_OK)                                                                                           \
         {                                                                                                              \
-          kmip_set_enum_error_message ((A), (B), (C), result);                                                         \
+          kmip_set_enum_error_message ((A), (B), (C), __result);                                                         \
           kmip_push_error_frame ((A), __func__, __LINE__);                                                             \
-          return (result);                                                                                             \
+          return (__result);                                                                                             \
         }                                                                                                              \
     }                                                                                                                  \
   while (0)
