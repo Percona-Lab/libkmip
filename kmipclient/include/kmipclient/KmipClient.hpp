@@ -327,15 +327,7 @@ namespace kmipclient {
     [[nodiscard]] std::vector<kmipcore::ProtocolVersion>
         op_discover_versions() const;
 
-    /**
-     * @brief Executes KMIP Query to get server information and capabilities.
-     *
-     * Queries the server for its capabilities and vendor-specific information.
-     * Returns supported operations, object types, and server metadata.
-     *
-     * @return Structure containing server information and capabilities.
-     * @throws kmipcore::KmipException on protocol or server-side failure.
-     */
+    /** @brief Holds server information and capabilities returned by op_query(). */
     struct QueryServerInfo {
       std::vector<kmipcore::operation>
           supported_operations;  ///< Operations supported by server
@@ -352,6 +344,15 @@ namespace kmipclient {
       std::string cluster_info;          ///< Cluster information
     };
 
+    /**
+     * @brief Executes KMIP Query to get server information and capabilities.
+     *
+     * Queries the server for its capabilities and vendor-specific information.
+     * Returns supported operations, object types, and server metadata.
+     *
+     * @return Structure containing server information and capabilities.
+     * @throws kmipcore::KmipException on protocol or server-side failure.
+     */
     [[nodiscard]] QueryServerInfo op_query() const;
 
     /** @brief Returns the configured KMIP protocol version. */
