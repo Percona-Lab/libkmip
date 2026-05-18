@@ -5,6 +5,7 @@ project(kmipclient)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(OpenSSL REQUIRED)
+find_package(Threads REQUIRED)
 
 add_library(
   kmipclient
@@ -43,7 +44,7 @@ target_include_directories(
   $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(kmipclient PUBLIC kmipcore OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(kmipclient PUBLIC kmipcore OpenSSL::SSL OpenSSL::Crypto Threads::Threads)
 
 set_property(TARGET kmipclient PROPERTY POSITION_INDEPENDENT_CODE ON)
 
