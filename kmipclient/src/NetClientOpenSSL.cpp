@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
 #include <poll.h>
 #include <sstream>
@@ -65,6 +66,28 @@ namespace kmipclient {
 
     in6_addr addr6{};
     return inet_pton(AF_INET6, host.c_str(), &addr6) == 1;
+  }
+
+  // TLS_method() was introduced in OpenSSL 1.1.0.
+  // Older builds (OpenSSL < 1.1.0) use the SSLv23_method() alias.
+  static const SSL_METHOD *get_tls_client_method() {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+    return SSLv23_method();
+#else
+    return TLS_method();
+#endif
+  }
+
+  // SSL_get0_peer_certificate() (borrowed ref, no X509_free needed) was
+  // introduced in OpenSSL 3.0.  OpenSSL 1.0.x and 1.1.x — including the
+  // OpenSSL 1.1.1 shipped with Oracle Linux 8 — only have
+  // SSL_get_peer_certificate() which bumps the refcount and requires X509_free.
+  static X509 *get_peer_certificate(SSL *ssl) {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+    return SSL_get0_peer_certificate(ssl);
+#else
+    return SSL_get_peer_certificate(ssl);
+#endif
   }
 
   static void configure_tls_verification(
@@ -141,12 +164,18 @@ namespace kmipclient {
       return;
     }
 
-    if (SSL_get0_peer_certificate(ssl) == nullptr) {
+    X509 *peer_cert = get_peer_certificate(ssl);
+    if (peer_cert == nullptr) {
       throw KmipIOException(
           kmipcore::KMIP_IO_FAILURE,
           "TLS peer verification failed: server did not present a certificate"
       );
     }
+
+#if OPENSSL_VERSION_NUMBER < 0x30000000L || defined(LIBRESSL_VERSION_NUMBER)
+    // SSL_get_peer_certificate() bumps the refcount; release the reference.
+    X509_free(peer_cert);
+#endif
 
     const long verify_result = SSL_get_verify_result(ssl);
     if (verify_result != X509_V_OK) {
@@ -328,7 +357,9 @@ namespace kmipclient {
       ctx_.reset();
     }
 
-    std::unique_ptr<SSL_CTX, SslCtxDeleter> new_ctx(SSL_CTX_new(TLS_method()));
+    std::unique_ptr<SSL_CTX, SslCtxDeleter> new_ctx(
+        SSL_CTX_new(get_tls_client_method())
+    );
     if (!new_ctx) {
       throw KmipIOException(
           kmipcore::KMIP_IO_FAILURE,
