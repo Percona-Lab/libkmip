@@ -93,15 +93,12 @@ void test_response_parser_failure_preserves_reason_code() {
   );
   ResponseParser parser(bytes);
 
-  bool threw = false;
   try {
-    [[maybe_unused]] auto resp = parser.getResponse<GetResponseBatchItem>(0);
+    (void) parser.getResponse<GetResponseBatchItem>(0);
+    assert(false);
   } catch (const KmipException &e) {
-    threw = true;
     assert(e.code().value() == KMIP_REASON_ITEM_NOT_FOUND);
   }
-
-  assert(threw);
   std::cout << "ResponseParser failure reason-code preservation test passed"
             << std::endl;
 }
@@ -145,17 +142,15 @@ void test_response_parser_operation_hint_when_operation_absent() {
   //    the operation in the thrown error is 0 ("Unknown Operation").
   {
     ResponseParser parser(bytes);
-    bool threw = false;
     try {
-      [[maybe_unused]] auto resp = parser.getResponse<GetResponseBatchItem>(0);
+      (void) parser.getResponse<GetResponseBatchItem>(0);
+      assert(false);
     } catch (const KmipException &e) {
-      threw = true;
       assert(e.code().value() == KMIP_REASON_ITEM_NOT_FOUND);
       // Operation string should be the "unknown" fallback.
       const std::string msg = e.what();
       assert(msg.find("Operation: Unknown Operation") != std::string::npos);
     }
-    assert(threw);
   }
 
   // ── Case 2: parser WITH hints → error message should show the correct op.
@@ -165,18 +160,16 @@ void test_response_parser_operation_hint_when_operation_absent() {
     request.add_batch_item(GetRequest("fake-id-abc"));
 
     ResponseParser parser(bytes, request);
-    bool threw = false;
     try {
-      [[maybe_unused]] auto resp = parser.getResponse<GetResponseBatchItem>(0);
+      (void) parser.getResponse<GetResponseBatchItem>(0);
+      assert(false);
     } catch (const KmipException &e) {
-      threw = true;
       assert(e.code().value() == KMIP_REASON_ITEM_NOT_FOUND);
       const std::string msg = e.what();
       // With the hint the error should now say "Operation: Get".
       assert(msg.find("Operation: Get") != std::string::npos);
       assert(msg.find("Result reason:") != std::string::npos);
     }
-    assert(threw);
   }
 
   std::cout << "ResponseParser operation-hint fallback test passed"
@@ -243,11 +236,19 @@ void test_response_parser_discover_versions() {
   ResponseParser parser(bytes);
 
   auto discover_resp = parser.getResponse<DiscoverVersionsResponseBatchItem>(0);
-  const auto &versions = discover_resp.getProtocolVersions();
-  assert(versions.size() == 3);
-  assert(versions[0].getMajor() == 2 && versions[0].getMinor() == 1);
-  assert(versions[1].getMajor() == 2 && versions[1].getMinor() == 0);
-  assert(versions[2].getMajor() == 1 && versions[2].getMinor() == 4);
+  assert(discover_resp.getProtocolVersions().size() == 3);
+  assert(
+      discover_resp.getProtocolVersions()[0].getMajor() == 2 &&
+      discover_resp.getProtocolVersions()[0].getMinor() == 1
+  );
+  assert(
+      discover_resp.getProtocolVersions()[1].getMajor() == 2 &&
+      discover_resp.getProtocolVersions()[1].getMinor() == 0
+  );
+  assert(
+      discover_resp.getProtocolVersions()[2].getMajor() == 1 &&
+      discover_resp.getProtocolVersions()[2].getMinor() == 4
+  );
 
   std::cout << "ResponseParser Discover Versions test passed" << std::endl;
 }
@@ -536,8 +537,10 @@ void test_attributes_parser_extended() {
   auto parsed_attrs = AttributesParser::parse(attributes);
 
   assert(parsed_attrs.has_attribute("Activation Date"));
-  const auto &date_str = parsed_attrs.get("Activation Date");
-  assert(date_str.find("2023-03-15") != std::string::npos);
+  assert(
+      parsed_attrs.get("Activation Date").find("2023-03-15") !=
+      std::string::npos
+  );
 
   // Cryptographic Algorithm is now a typed field.
   assert(
@@ -768,10 +771,9 @@ void test_get_attribute_list_response_supports_v2_attribute_reference() {
   ResponseParser parser(bytes);
   auto response = parser.getResponse<GetAttributeListResponseBatchItem>(0);
 
-  const auto &names = response.getAttributeNames();
-  assert(names.size() == 2);
-  assert(names[0] == KMIP_ATTR_NAME_STATE);
-  assert(names[1] == "Vendor Custom Attr");
+  assert(response.getAttributeNames().size() == 2);
+  assert(response.getAttributeNames()[0] == KMIP_ATTR_NAME_STATE);
+  assert(response.getAttributeNames()[1] == "Vendor Custom Attr");
 
   std::cout
       << "GetAttributeListResponse KMIP 2.0 Attribute Reference test passed"

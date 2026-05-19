@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <iomanip>
+#include <limits>
 #include <vector>
 
 namespace kmipcore {
@@ -15,9 +16,18 @@ namespace kmipcore {
     return htonl(v);
   }
   static std::uint64_t to_be64(std::uint64_t v) {
-    std::uint32_t high = htonl(v >> 32);
-    std::uint32_t low = htonl(v & 0xFFFFFFFF);
+    std::uint32_t high = htonl(static_cast<std::uint32_t>(v >> 32));
+    std::uint32_t low = htonl(static_cast<std::uint32_t>(v & 0xFFFFFFFFULL));
     return (static_cast<std::uint64_t>(low) << 32) | high;
+  }
+
+  static std::uint32_t to_u32_size(std::size_t value, const char *field_name) {
+    if (value > std::numeric_limits<std::uint32_t>::max()) {
+      throw KmipException(
+          std::string("TTLV ") + field_name + " exceeds uint32_t range"
+      );
+    }
+    return static_cast<std::uint32_t>(value);
   }
   // Safe big-endian decoders from raw byte spans.
   static std::uint32_t
@@ -77,7 +87,7 @@ namespace kmipcore {
       for (const auto &item : s.items) {
         item->serialize(content_buf);  // Recursive call
       }
-      payload_length = content_buf.size();
+      payload_length = to_u32_size(content_buf.size(), "payload length");
     } else if (std::holds_alternative<Integer>(value)) {
       std::uint32_t wire =
           to_be32(static_cast<std::uint32_t>(std::get<Integer>(value).value));
@@ -92,7 +102,7 @@ namespace kmipcore {
     } else if (std::holds_alternative<BigInteger>(value)) {
       const auto &v = std::get<BigInteger>(value).value;
       content_buf.writeBytes(std::as_bytes(std::span(v.data(), v.size())));
-      payload_length = v.size();
+      payload_length = to_u32_size(v.size(), "BigInteger length");
     } else if (std::holds_alternative<Enumeration>(value)) {
       std::uint32_t wire = to_be32(
           static_cast<std::uint32_t>(std::get<Enumeration>(value).value)
@@ -107,11 +117,11 @@ namespace kmipcore {
     } else if (std::holds_alternative<TextString>(value)) {
       const auto &v = std::get<TextString>(value).value;
       content_buf.writePadded(std::as_bytes(std::span(v.data(), v.size())));
-      payload_length = v.size();
+      payload_length = to_u32_size(v.size(), "TextString length");
     } else if (std::holds_alternative<ByteString>(value)) {
       const auto &v = std::get<ByteString>(value).value;
       content_buf.writePadded(std::as_bytes(std::span(v.data(), v.size())));
-      payload_length = v.size();
+      payload_length = to_u32_size(v.size(), "ByteString length");
     } else if (std::holds_alternative<DateTime>(value)) {
       std::uint64_t wire =
           to_be64(static_cast<std::uint64_t>(std::get<DateTime>(value).value));
@@ -133,10 +143,10 @@ namespace kmipcore {
     }
 
     // Write Length (4 bytes, big-endian)
-    buf.writeByte((payload_length >> 24) & 0xFF);
-    buf.writeByte((payload_length >> 16) & 0xFF);
-    buf.writeByte((payload_length >> 8) & 0xFF);
-    buf.writeByte(payload_length & 0xFF);
+    buf.writeByte(static_cast<std::uint8_t>((payload_length >> 24) & 0xFF));
+    buf.writeByte(static_cast<std::uint8_t>((payload_length >> 16) & 0xFF));
+    buf.writeByte(static_cast<std::uint8_t>((payload_length >> 8) & 0xFF));
+    buf.writeByte(static_cast<std::uint8_t>(payload_length & 0xFF));
 
     // Write content (already padded from content_buf)
     if (content_buf.size() > 0) {

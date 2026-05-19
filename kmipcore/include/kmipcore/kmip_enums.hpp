@@ -951,7 +951,7 @@ namespace kmipcore {
     KMIP_REVOKE_SUSPENDED = 0x05,
     KMIP_REVOKE_CESSATION_OF_OPERATION = 0x06,
     KMIP_REVOKE_PRIVILEDGE_WITHDRAWN = 0x07,
-    KMIP_REVOKE_EXTENSIONS = static_cast<std::uint32_t>(0x80000000u)
+    KMIP_REVOKE_EXTENSIONS = 0x80000000u
   };
 
   /** @brief KMIP secret payload data type identifiers. */
@@ -959,7 +959,7 @@ namespace kmipcore {
     // KMIP 1.0
     KMIP_SECDATA_PASSWORD = 0x01,
     KMIP_SECDATA_SEED = 0x02,
-    KMIP_SECDATA_EXTENSIONS = static_cast<std::uint32_t>(0x80000000u)
+    KMIP_SECDATA_EXTENSIONS = 0x80000000u
   };
 
   // ---------------------------------------------------------------------------

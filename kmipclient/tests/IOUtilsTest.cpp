@@ -63,7 +63,7 @@ namespace {
     int send(std::span<const std::uint8_t> data) override {
       ++send_calls;
 
-      const int desired = send_plan_index < static_cast<int>(send_plan.size())
+      const int desired = send_plan_index < send_plan.size()
                             ? send_plan[send_plan_index++]
                             : static_cast<int>(data.size());
       if (desired <= 0) {
@@ -93,7 +93,7 @@ namespace {
     int send_calls = 0;
 
   private:
-    int send_plan_index = 0;
+    size_t send_plan_index = 0;
     size_t recv_offset = 0;
   };
 

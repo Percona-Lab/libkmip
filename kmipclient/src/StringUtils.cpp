@@ -26,13 +26,13 @@ namespace kmipclient {
 
   unsigned char char2int(const char input) {
     if (input >= '0' && input <= '9') {
-      return input - '0';
+      return static_cast<unsigned char>(input - '0');
     }
     if (input >= 'A' && input <= 'F') {
-      return input - 'A' + 10;
+      return static_cast<unsigned char>(input - 'A' + 10);
     }
     if (input >= 'a' && input <= 'f') {
-      return input - 'a' + 10;
+      return static_cast<unsigned char>(input - 'a' + 10);
     }
     throw kmipcore::KmipException{"Invalid hex character."};
   }
@@ -57,8 +57,11 @@ namespace kmipclient {
       std::array<int, 256> l{};
       l.fill(-1);
       for (int i = 0; i < 64; ++i) {
-        l["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-              [i]] = i;
+        const auto idx = static_cast<unsigned char>(
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+            [static_cast<std::size_t>(i)]
+        );
+        l[idx] = i;
       }
       return l;
     }();
@@ -67,7 +70,8 @@ namespace kmipclient {
     out.reserve((base64.size() / 4) * 3);
 
     int val = 0, val_b = -8;
-    for (unsigned char c : base64) {
+    for (const char ch : base64) {
+      const auto c = static_cast<unsigned char>(ch);
       if (lookup[c] == -1) {
         if (c == '=') {
           break;  // Padding reached
