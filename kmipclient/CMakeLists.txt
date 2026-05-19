@@ -5,6 +5,68 @@ project(kmipclient)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(OpenSSL REQUIRED)
+
+option(KMIP_MAINTAINER_MODE "Enable strict compiler warnings for kmipclient targets" OFF)
+option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+
+function(kmip_enable_maintainer_warnings target_name)
+  if(NOT KMIP_MAINTAINER_MODE)
+    return()
+  endif()
+
+  if(MSVC)
+    target_compile_options(${target_name} PRIVATE /W4)
+    if(WARNINGS_AS_ERRORS)
+      target_compile_options(${target_name} PRIVATE /WX)
+    endif()
+    return()
+  endif()
+
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(
+      ${target_name}
+      PRIVATE
+      -Weverything
+      -Wno-c++98-compat
+      -Wno-c++98-compat-pedantic
+      -Wno-pre-c++20-compat
+      -Wno-c++20-compat
+      -Wno-padded
+      -Wno-switch-enum
+      -Wno-unsafe-buffer-usage
+      -Wno-covered-switch-default
+      -Wno-documentation
+      -Wno-exit-time-destructors
+      -Wno-global-constructors
+      -Wno-missing-prototypes
+      -Wno-newline-eof
+      -Wno-nrvo
+      -Wno-weak-vtables
+    )
+  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(
+      ${target_name}
+      PRIVATE
+      -Wall
+      -Wextra
+      -Wpedantic
+      -Wcast-qual
+      -Wconversion
+      -Wdouble-promotion
+      -Wformat=2
+      -Wnull-dereference
+      -Woverloaded-virtual
+      -Wshadow
+      -Wsign-conversion
+      -Wundef
+      -Wuseless-cast
+    )
+  endif()
+
+  if(WARNINGS_AS_ERRORS)
+    target_compile_options(${target_name} PRIVATE -Werror)
+  endif()
+endfunction()
 find_package(Threads REQUIRED)
 
 add_library(
@@ -77,6 +139,7 @@ install(
 macro(add_example name)
   add_executable(example_${name} examples/example_${name}.cpp)
   target_link_libraries(example_${name} PRIVATE kmipclient)
+  kmip_enable_maintainer_warnings(example_${name})
 endmacro()
 
 add_example(create_aes)
@@ -115,6 +178,15 @@ if(BUILD_TESTS)
     FetchContent_MakeAvailable(googletest)
   endif()
 
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if(TARGET gtest)
+      target_compile_options(gtest PRIVATE -Wno-character-conversion)
+    endif()
+    if(TARGET gtest_main)
+      target_compile_options(gtest_main PRIVATE -Wno-character-conversion)
+    endif()
+  endif()
+
   enable_testing()
 
   add_executable(
@@ -131,6 +203,7 @@ if(BUILD_TESTS)
     GTest::gtest_main
     kmipclient
   )
+  kmip_enable_maintainer_warnings(kmipclient_test)
 
   include(GoogleTest)
   gtest_discover_tests(kmipclient_test)

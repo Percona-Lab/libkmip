@@ -68,15 +68,15 @@ namespace kmipclient {
         m_clientCertificateFn(clientCertificateFn),
         m_clientKeyFn(clientKeyFn),
         m_serverCaCertificateFn(serverCaCertFn),
-        m_timeout_ms(timeout_ms) {};
+        m_timeout_ms(timeout_ms) {}
 
     /** @brief Virtual destructor for interface-safe cleanup. */
     virtual ~NetClient() = default;
     // no copy, no move
     NetClient(const NetClient &) = delete;
-    virtual NetClient &operator=(const NetClient &) = delete;
+    NetClient &operator=(const NetClient &) = delete;
     NetClient(NetClient &&) = delete;
-    virtual NetClient &operator=(NetClient &&) = delete;
+    NetClient &operator=(NetClient &&) = delete;
     /**
      * @brief Establishes network/TLS connection to the KMIP server.
      *        Must honor @ref m_timeout_ms for connect + handshake phases.

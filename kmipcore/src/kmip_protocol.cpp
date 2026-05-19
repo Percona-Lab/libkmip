@@ -316,7 +316,7 @@ namespace kmipcore {
         !request.header_.getBatchOrderOption().has_value()) {
       request.header_.setBatchOrderOption(true);
     }
-    request.header_.setTimeStamp(static_cast<int64_t>(time(nullptr)));
+    request.header_.setTimeStamp(time(nullptr));
 
     // Use SerializationBuffer for efficient serialization
     SerializationBuffer buf(request.getMaxResponseSize());
@@ -348,8 +348,8 @@ namespace kmipcore {
     validate_element_types_for_version(
         element, rm.header_.getProtocolVersion()
     );
-    const auto *s = std::get_if<Structure>(&element->value);
-    for (const auto &child : s->items) {
+    const auto &s = std::get<Structure>(element->value);
+    for (const auto &child : s.items) {
       if (child->tag == tag::KMIP_TAG_BATCH_ITEM) {
         rm.batchItems_.push_back(RequestBatchItem::fromElement(child));
       }
@@ -510,8 +510,8 @@ namespace kmipcore {
     validate_element_types_for_version(
         element, rm.header_.getProtocolVersion()
     );
-    const auto *s = std::get_if<Structure>(&element->value);
-    for (const auto &child : s->items) {
+    const auto &s = std::get<Structure>(element->value);
+    for (const auto &child : s.items) {
       if (child->tag == tag::KMIP_TAG_BATCH_ITEM) {
         rm.batchItems_.push_back(ResponseBatchItem::fromElement(child));
       }

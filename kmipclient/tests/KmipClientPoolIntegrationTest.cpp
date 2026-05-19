@@ -187,6 +187,7 @@ protected:
         .client_cert = config.kmip_client_ca,
         .client_key = config.kmip_client_key,
         .server_ca_cert = config.kmip_server_ca,
+        .logger = nullptr,
         .timeout_ms = config.timeout_ms,
         .max_connections = max_connections,
         .tls_verification = {

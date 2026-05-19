@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
     std::cerr << "Can not get secret with id:" << argv[6]
               << " Cause: " << e.what() << std::endl;
     return -1;
-  };
+  }
 
   return 0;
 }

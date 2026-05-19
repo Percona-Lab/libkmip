@@ -72,24 +72,24 @@ namespace kmipclient {
   }
 
   KmipClient::KmipClient(
-      NetClient &net_client,
+      NetClient &transport,
       const std::shared_ptr<kmipcore::Logger> &logger,
       kmipcore::ProtocolVersion version,
       bool close_on_destroy
   )
-    : net_client(&net_client),
-      io(std::make_unique<IOUtils>(net_client, logger)),
+    : net_client(&transport),
+      io(std::make_unique<IOUtils>(transport, logger)),
       version_(version),
       close_on_destroy_(close_on_destroy) {};
 
   KmipClient::KmipClient(
-      std::shared_ptr<NetClient> net_client,
+      std::shared_ptr<NetClient> transport,
       const std::shared_ptr<kmipcore::Logger> &logger,
       kmipcore::ProtocolVersion version,
       bool close_on_destroy
   )
-    : net_client(net_client.get()),
-      net_client_owner_(std::move(net_client)),
+    : net_client(transport.get()),
+      net_client_owner_(std::move(transport)),
       io(),
       version_(version),
       close_on_destroy_(close_on_destroy) {

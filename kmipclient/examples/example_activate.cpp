@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
   } catch (const std::exception &e) {
     std::cerr << "Can not activate key with id:" << argv[6]
               << " Cause: " << e.what() << std::endl;
-  };
+  }
 
   return -1;
 }

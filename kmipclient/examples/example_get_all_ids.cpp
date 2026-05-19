@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     }
   } catch (const std::exception &e) {
     std::cerr << "Can not get keys." << " Cause: " << e.what() << std::endl;
-  };
+  }
 
   try {
     const auto opt_ids_s = client.op_all(object_type::KMIP_OBJTYPE_SECRET_DATA);
@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     }
   } catch (const std::exception &e) {
     std::cerr << "Can not get id-s. Cause: " << e.what() << std::endl;
-  };
+  }
 
   return 0;
 }

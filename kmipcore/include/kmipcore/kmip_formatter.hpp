@@ -8,7 +8,7 @@
 
 namespace kmipcore {
 
-  class Element;
+  struct Element;
   class RequestMessage;
   class ResponseMessage;
 

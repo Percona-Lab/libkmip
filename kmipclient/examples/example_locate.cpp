@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     std::cerr << "Can not get keys with name:" << argv[6]
               << " Cause: " << e.what() << std::endl;
     return 1;
-  };
+  }
 
   try {
     const auto opt_ids_s = client.op_locate_by_name(
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     std::cerr << "Can not get secrets with name:" << argv[6]
               << " Cause: " << e.what() << std::endl;
     return 1;
-  };
+  }
 
   return 0;
 }
