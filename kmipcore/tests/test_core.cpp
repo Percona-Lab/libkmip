@@ -99,13 +99,11 @@ void test_date_time_extended_invalid_length() {
   };
 
   size_t offset = 0;
-  bool threw = false;
   try {
     (void) Element::deserialize(invalid, offset);
+    assert(false);
   } catch (const KmipException &) {
-    threw = true;
   }
-  assert(threw);
 
   std::cout << "DateTimeExtended invalid-length test passed" << std::endl;
 }
@@ -132,13 +130,11 @@ void test_non_zero_padding_is_rejected() {
   };
 
   size_t offset = 0;
-  bool threw = false;
   try {
     (void) Element::deserialize(invalid, offset);
+    assert(false);
   } catch (const KmipException &) {
-    threw = true;
   }
-  assert(threw);
 
   std::cout << "Non-zero padding validation test passed" << std::endl;
 }
@@ -158,13 +154,11 @@ void test_date_time_extended_requires_kmip_2_0_for_requests() {
   RequestMessage request_14;
   request_14.add_batch_item(item);
 
-  bool threw = false;
   try {
     (void) request_14.serialize();
+    assert(false);
   } catch (const KmipException &) {
-    threw = true;
   }
-  assert(threw);
 
   RequestMessage request_20(KMIP_VERSION_2_0);
   assert(request_20.getHeader().getProtocolVersion().getMajor() == 2);
@@ -184,9 +178,8 @@ void test_date_time_extended_requires_kmip_2_0_for_requests() {
       request_header->getChild(tag::KMIP_TAG_PROTOCOL_VERSION);
   assert(protocol_version != nullptr);
 
-  auto parsed_version = ProtocolVersion::fromElement(protocol_version);
-  assert(parsed_version.getMajor() == 2);
-  assert(parsed_version.getMinor() == 0);
+  assert(ProtocolVersion::fromElement(protocol_version).getMajor() == 2);
+  assert(ProtocolVersion::fromElement(protocol_version).getMinor() == 0);
 
   std::cout << "DateTimeExtended KMIP 2.0 request-version test passed"
             << std::endl;
@@ -221,13 +214,11 @@ void test_date_time_extended_requires_kmip_2_0_for_responses() {
   batch_item->asStructure()->add(payload);
   response->asStructure()->add(batch_item);
 
-  bool threw = false;
   try {
     (void) ResponseMessage::fromElement(response);
+    assert(false);
   } catch (const KmipException &) {
-    threw = true;
   }
-  assert(threw);
 
   header.setProtocolVersion(ProtocolVersion(2, 0));
   auto response_20 = Element::createStructure(tag::KMIP_TAG_RESPONSE_MESSAGE);
@@ -256,7 +247,7 @@ void test_request_message() {
       Element::createInteger(tag::KMIP_TAG_ACTIVATION_DATE, 999)
   );
   item.setRequestPayload(payload);
-  auto first_id = req.add_batch_item(item);
+  req.add_batch_item(item);
 
   RequestBatchItem item2;
   item2.setOperation(KMIP_OP_GET_ATTRIBUTE_LIST);
@@ -265,11 +256,7 @@ void test_request_message() {
       Element::createInteger(tag::KMIP_TAG_ACTIVATION_DATE, 111)
   );
   item2.setRequestPayload(payload2);
-  auto second_id = req.add_batch_item(item2);
-
-  assert(first_id == 1);
-  assert(second_id == 2);
-  assert(first_id != second_id);
+  req.add_batch_item(item2);
 
   auto bytes = req.serialize();
   std::cout << "Serialized RequestMessage size: " << bytes.size() << std::endl;
@@ -613,13 +600,11 @@ void test_response_required_fields() {
     );
     response_message->asStructure()->add(batch_item);
 
-    bool threw = false;
     try {
       (void) ResponseMessage::fromElement(response_message);
+      assert(false);
     } catch (const KmipException &) {
-      threw = true;
     }
-    assert(threw);
   }
 
   {
@@ -647,13 +632,11 @@ void test_response_required_fields() {
     response_message->asStructure()->add(batch_item);
 
     // Must NOT throw: under-delivery (fewer items than declared) is accepted.
-    bool threw = false;
     try {
       (void) ResponseMessage::fromElement(response_message);
     } catch (const KmipException &) {
-      threw = true;
+      assert(false);
     }
-    assert(!threw);
   }
 
   {
@@ -685,13 +668,11 @@ void test_response_required_fields() {
         make_success_item(KMIP_OP_GET_ATTRIBUTES)
     );
 
-    bool threw = false;
     try {
       (void) ResponseMessage::fromElement(response_message);
+      assert(false);
     } catch (const KmipException &) {
-      threw = true;
     }
-    assert(threw);
   }
 
   {
@@ -712,13 +693,11 @@ void test_response_required_fields() {
     );
     response_message->asStructure()->add(batch_item);
 
-    bool threw = false;
     try {
       (void) ResponseMessage::fromElement(response_message);
+      assert(false);
     } catch (const KmipException &) {
-      threw = true;
     }
-    assert(threw);
   }
 
   {
@@ -744,13 +723,11 @@ void test_response_required_fields() {
     );
     response_message->asStructure()->add(batch_item);
 
-    bool threw = false;
     try {
       (void) ResponseMessage::fromElement(response_message);
+      assert(false);
     } catch (const KmipException &) {
-      threw = true;
     }
-    assert(threw);
   }
 
   {

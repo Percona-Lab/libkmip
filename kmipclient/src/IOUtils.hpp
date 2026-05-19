@@ -34,7 +34,7 @@ namespace kmipclient {
     explicit IOUtils(
         NetClient &nc, const std::shared_ptr<kmipcore::Logger> &logger = {}
     )
-      : net_client(nc), logger_(logger) {};
+      : net_client(nc), logger_(logger) {}
 
     void do_exchange(
         const std::vector<uint8_t> &request_bytes,

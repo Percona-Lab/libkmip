@@ -228,9 +228,6 @@ context::op_activate (context::id_t id)
 bool
 context::op_destroy (context::id_t id)
 {
-
-  int   key_len = 0;
-  char *keyp    = nullptr;
   int   result  = kmip_bio_destroy_symmetric_key (bio_, const_cast<char *> (id.c_str ()), id.length ());
 
   return result == KMIP_OK;
@@ -338,10 +335,6 @@ context::op_locate_by_group (context::name_t group)
   a[1].type      = KMIP_ATTR_OBJECT_GROUP;
   a[1].value     = &ts2;
 
-  TemplateAttribute ta = { 0 };
-  ta.attributes        = a;
-  ta.attribute_count   = ARRAY_LENGTH (a);
-
   int   upto = 0;
   int   all  = 1; // TMP
   ids_t ret;
@@ -399,9 +392,6 @@ context::op_locate_secrets_by_group (context::name_t group)
   a[1].type      = KMIP_ATTR_OBJECT_GROUP;
   a[1].value     = &ts2;
 
-  TemplateAttribute ta = { 0 };
-  ta.attributes        = a;
-  ta.attribute_count   = ARRAY_LENGTH (a);
 
   int   upto = 0;
   int   all  = 1; // TMP

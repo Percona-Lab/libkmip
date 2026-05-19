@@ -159,7 +159,7 @@ namespace kmipcore {
      * @brief Builds a locate request by name or group.
      * @param locate_by_group true to filter by Object Group, false by Name.
      * @param name Filter value.
-     * @param object_type KMIP object_type to match.
+     * @param obj_type KMIP object_type to match.
      * @param max_items Maximum number of items requested per locate call.
      * @param offset Locate offset used for paged reads.
      * @param version Protocol version; controls KMIP 2.0 Attributes vs 1.x

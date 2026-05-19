@@ -75,6 +75,7 @@ int main(int argc, char **argv) {
           .client_cert = client_cert,
           .client_key = client_key,
           .server_ca_cert = server_ca_cert,
+          .logger = nullptr,
           .timeout_ms = 5000,
           .max_connections = static_cast<size_t>(max_pool_size),
       }
@@ -84,7 +85,7 @@ int main(int argc, char **argv) {
   // Spawn threads – each borrows a connection, uses it, returns it.
   // ------------------------------------------------------------------
   std::vector<std::thread> threads;
-  threads.reserve(num_threads);
+  threads.reserve(static_cast<std::size_t>(num_threads));
 
   for (int i = 0; i < num_threads; ++i) {
     threads.emplace_back([&pool, &key_name_prefix, i]() {

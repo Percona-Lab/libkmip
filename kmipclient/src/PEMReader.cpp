@@ -53,7 +53,7 @@ namespace kmipclient {
       OPENSSL_free(der);
 
       kmipcore::Attributes attrs;
-      attrs.set(KMIP_ATTR_NAME_NAME, "certificate");
+      attrs.set(KMIP_ATTR_NAME_NAME, std::string("certificate"));
       return X509Certificate(cert_bytes, std::move(attrs));
     }
 
@@ -78,7 +78,7 @@ namespace kmipclient {
       OPENSSL_free(der);
 
       kmipcore::Attributes attrs;
-      attrs.set(KMIP_ATTR_NAME_NAME, "private_key");
+      attrs.set(KMIP_ATTR_NAME_NAME, std::string("private_key"));
       return PrivateKey(key_bytes, std::move(attrs));
     }
 
@@ -103,7 +103,7 @@ namespace kmipclient {
       OPENSSL_free(der);
 
       kmipcore::Attributes attrs;
-      attrs.set(KMIP_ATTR_NAME_NAME, "public_key");
+      attrs.set(KMIP_ATTR_NAME_NAME, std::string("public_key"));
       return PublicKey(key_bytes, std::move(attrs));
     }
 

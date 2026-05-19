@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
     std::cerr << "Can not get key with id:" << argv[6] << " Cause: " << e.what()
               << std::endl;
     return -1;
-  };
+  }
 
   return 0;
 }

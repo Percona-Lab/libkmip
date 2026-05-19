@@ -428,8 +428,8 @@ namespace kmipclient {
     configure_tls_verification(new_ctx.get(), ssl, m_host, m_tls_verification);
 
     SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
-    BIO_set_conn_hostname(new_bio.get(), m_host.c_str());
-    BIO_set_conn_port(new_bio.get(), m_port.c_str());
+    BIO_set_conn_hostname(new_bio.get(), m_host.data());
+    BIO_set_conn_port(new_bio.get(), m_port.data());
 
     if (m_timeout_ms > 0) {
       if (BIO_set_nbio(new_bio.get(), 1) != 1) {
@@ -443,7 +443,7 @@ namespace kmipclient {
                             std::chrono::milliseconds(m_timeout_ms);
       for (;;) {
         ERR_clear_error();
-        const int connect_ret = BIO_do_connect(new_bio.get());
+        const auto connect_ret = BIO_do_connect(new_bio.get());
         if (connect_ret == 1) {
           break;
         }

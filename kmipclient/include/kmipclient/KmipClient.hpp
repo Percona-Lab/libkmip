@@ -320,8 +320,8 @@ namespace kmipclient {
      * @brief Executes KMIP Discover Versions to query supported protocol
      * versions.
      *
-     * @return Ordered list of KMIP protocol versions supported by the server.
-     *         An empty list means the server returned no version information.
+     * Returns an ordered list of KMIP protocol versions supported by the server.
+     * An empty list means the server returned no version information.
      * @throws kmipcore::KmipException on protocol or server-side failure.
      */
     [[nodiscard]] std::vector<kmipcore::ProtocolVersion>
@@ -369,7 +369,7 @@ namespace kmipclient {
 
     /**
      * @brief Queries the close_on_destroy setting.
-     * @return true if the transport will be closed on destruction, false otherwise.
+     * Returns true if the transport will be closed on destruction, false otherwise.
      */
     [[nodiscard]] bool close_on_destroy() const noexcept {
       return close_on_destroy_;
