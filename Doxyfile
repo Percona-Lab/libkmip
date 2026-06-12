@@ -1,6 +1,6 @@
 # Project information
-PROJECT_NAME           = libkmip
-PROJECT_NUMBER         = 0.4.0
+PROJECT_NAME           = kmipclient
+PROJECT_NUMBER         = 0.2.1
 OUTPUT_DIRECTORY       = generated-docs
 
 # Input settings
