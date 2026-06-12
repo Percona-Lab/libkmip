@@ -433,6 +433,58 @@ void test_key_parser_secret_binary() {
   std::cout << "KeyParser Secret Binary test passed" << std::endl;
 }
 
+void test_key_parser_rejects_out_of_range_secret_type() {
+  // An attacker-controlled Secret Data Type enumeration that is not one of the
+  // known values must be rejected rather than cast into the scoped enum.
+  auto payload = Element::createStructure(tag::KMIP_TAG_RESPONSE_PAYLOAD);
+  payload->asStructure()->add(
+      Element::createTextString(tag::KMIP_TAG_UNIQUE_IDENTIFIER, "secret-id")
+  );
+  payload->asStructure()->add(
+      Element::createEnumeration(
+          tag::KMIP_TAG_OBJECT_TYPE, KMIP_OBJTYPE_SECRET_DATA
+      )
+  );
+
+  auto secret_data = Element::createStructure(tag::KMIP_TAG_SECRET_DATA);
+  secret_data->asStructure()->add(
+      Element::createEnumeration(tag::KMIP_TAG_SECRET_DATA_TYPE, 0x7F)
+  );
+
+  auto key_block = Element::createStructure(tag::KMIP_TAG_KEY_BLOCK);
+  key_block->asStructure()->add(
+      Element::createEnumeration(
+          tag::KMIP_TAG_KEY_FORMAT_TYPE, KMIP_KEYFORMAT_OPAQUE
+      )
+  );
+  auto key_value = Element::createStructure(tag::KMIP_TAG_KEY_VALUE);
+  key_value->asStructure()->add(
+      Element::createByteString(
+          tag::KMIP_TAG_KEY_MATERIAL, std::vector<uint8_t>{'p', 'w'}
+      )
+  );
+  key_block->asStructure()->add(key_value);
+  secret_data->asStructure()->add(key_block);
+  payload->asStructure()->add(secret_data);
+
+  ResponseBatchItem item;
+  item.setOperation(KMIP_OP_GET);
+  item.setResultStatus(KMIP_STATUS_SUCCESS);
+  item.setResponsePayload(payload);
+
+  GetResponseBatchItem get_resp = GetResponseBatchItem::fromBatchItem(item);
+  bool threw = false;
+  try {
+    (void) KeyParser::parseGetSecretResponse(get_resp);
+  } catch (const KmipException &) {
+    threw = true;
+  }
+  assert(threw);
+
+  std::cout << "KeyParser out-of-range secret type rejection test passed"
+            << std::endl;
+}
+
 void test_register_secret_request_structure() {
   const std::vector<unsigned char> secret = {'a', 'b', 0x00, 'c'};
   RegisterSecretRequest req(
@@ -625,6 +677,54 @@ void test_attributes_parser_v2_typed() {
   assert(result.get_int("Tag(0x420003)").value() == 3600);
 
   std::cout << "AttributesParser KMIP 2.0 typed attributes test passed"
+            << std::endl;
+}
+
+void test_attributes_parser_rejects_out_of_range_enums() {
+  // A malicious server can send any 4-byte Enumeration. Security-relevant
+  // attributes (algorithm, state, usage mask) must be validated against the
+  // known KMIP value tables before being cast into the scoped enums that steer
+  // key-handling decisions.
+  auto expect_throws = [](const std::shared_ptr<Element> &attr) {
+    std::vector<std::shared_ptr<Element>> attrs{attr};
+    bool threw = false;
+    try {
+      (void) AttributesParser::parse(attrs);
+    } catch (const KmipException &) {
+      threw = true;
+    }
+    assert(threw);
+  };
+
+  // Out-of-range cryptographic algorithm (0x39 is one past Ed448 = 0x38).
+  expect_throws(
+      Element::createEnumeration(tag::KMIP_TAG_CRYPTOGRAPHIC_ALGORITHM, 0x39)
+  );
+  // Out-of-range lifecycle state (valid range 0x01..0x06).
+  expect_throws(Element::createEnumeration(tag::KMIP_TAG_STATE, 0x07));
+  // Usage mask with bits outside the defined 0..23 flag range.
+  expect_throws(
+      Element::createInteger(
+          tag::KMIP_TAG_CRYPTOGRAPHIC_USAGE_MASK,
+          static_cast<int32_t>(0x01000000)
+      )
+  );
+
+  // Same validation on the KMIP 1.x Attribute name/value wrapper path.
+  {
+    auto attr = Element::createStructure(tag::KMIP_TAG_ATTRIBUTE);
+    attr->asStructure()->add(
+        Element::createTextString(
+            tag::KMIP_TAG_ATTRIBUTE_NAME, "Cryptographic Algorithm"
+        )
+    );
+    attr->asStructure()->add(
+        Element::createEnumeration(tag::KMIP_TAG_ATTRIBUTE_VALUE, 0x39)
+    );
+    expect_throws(attr);
+  }
+
+  std::cout << "AttributesParser out-of-range enum rejection test passed"
             << std::endl;
 }
 
@@ -908,10 +1008,12 @@ int main() {
   test_response_parser_operation_hint_when_operation_absent();
   test_key_parser_symmetric();
   test_key_parser_secret_binary();
+  test_key_parser_rejects_out_of_range_secret_type();
   test_register_secret_request_structure();
   test_attributes_parser();
   test_attributes_parser_extended();
   test_attributes_parser_v2_typed();
+  test_attributes_parser_rejects_out_of_range_enums();
   test_attributes_parser_legacy_wrapper_preserves_generic_types();
   test_get_attributes_request_encodes_per_protocol_version();
   test_get_attribute_list_response_supports_v2_attribute_reference();

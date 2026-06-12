@@ -202,6 +202,53 @@ void test_legitimate_nesting_is_accepted() {
   std::cout << "Legitimate nesting acceptance test passed" << std::endl;
 }
 
+void test_boolean_non_canonical_rejected() {
+  // KMIP 1.4 §9.1.1.4.6: a Boolean must encode exactly 0 or 1. A malicious
+  // server sending any other 8-byte payload must be rejected, not collapsed
+  // to true.
+  auto make_boolean = [](std::uint64_t raw) {
+    std::vector<uint8_t> bytes = {
+        0x42,
+        0x00,
+        0x74,
+        static_cast<uint8_t>(KMIP_TYPE_BOOLEAN),
+        0x00,
+        0x00,
+        0x00,
+        0x08,
+    };
+    for (int shift = 56; shift >= 0; shift -= 8) {
+      bytes.push_back(static_cast<uint8_t>((raw >> shift) & 0xFF));
+    }
+    return bytes;
+  };
+
+  // Canonical values still decode correctly.
+  for (std::uint64_t raw : {std::uint64_t{0}, std::uint64_t{1}}) {
+    auto bytes = make_boolean(raw);
+    size_t offset = 0;
+    auto decoded = Element::deserialize(bytes, offset);
+    assert(decoded->type == kmipcore::Type::KMIP_TYPE_BOOLEAN);
+    assert(std::get<Boolean>(decoded->value).value == (raw == 1));
+  }
+
+  // Non-canonical values are rejected.
+  for (std::uint64_t raw :
+       {std::uint64_t{2}, std::uint64_t{0xFFFFFFFFFFFFFFFFULL}}) {
+    auto bytes = make_boolean(raw);
+    size_t offset = 0;
+    bool threw = false;
+    try {
+      (void) Element::deserialize(bytes, offset);
+    } catch (const KmipException &) {
+      threw = true;
+    }
+    assert(threw);
+  }
+
+  std::cout << "Boolean non-canonical rejection test passed" << std::endl;
+}
+
 void test_date_time_extended_requires_kmip_2_0_for_requests() {
   RequestBatchItem item;
   item.setOperation(KMIP_OP_GET);
@@ -969,6 +1016,7 @@ int main() {
   test_non_zero_padding_is_rejected();
   test_deeply_nested_structure_is_rejected();
   test_legitimate_nesting_is_accepted();
+  test_boolean_non_canonical_rejected();
   test_date_time_extended_requires_kmip_2_0_for_requests();
   test_date_time_extended_requires_kmip_2_0_for_responses();
   test_request_message();
