@@ -48,8 +48,10 @@ namespace kmipclient {
      * @param timeout_ms Timeout in milliseconds applied to TCP connect, TLS
      *        handshake, and each read/write operation.
      * @param tls_verification TLS peer/hostname verification settings.
-     *        Defaults to {false, false} (no peer verification, no hostname
-     *        verification). Call set_tls_verification() afterwards to change.
+     *        Defaults to {true, true} (peer and hostname verification both
+     *        enabled). Callers that need to disable verification (e.g. test or
+     *        development setups) must opt in explicitly, either by passing the
+     *        flags here or via set_tls_verification() afterwards.
      */
     NetClientOpenSSL(
         const std::string &host,
@@ -58,7 +60,7 @@ namespace kmipclient {
         const std::string &clientKeyFn,
         const std::string &serverCaCertFn,
         int timeout_ms = DEFAULT_TIMEOUT_MS,
-        TlsVerificationOptions tls_verification = {false, false}
+        TlsVerificationOptions tls_verification = {}
     );
     /** @brief Releases OpenSSL resources and closes any open connection. */
     ~NetClientOpenSSL() override;
