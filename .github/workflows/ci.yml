@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: ${{ matrix.compiler }} ${{ matrix.build }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        build: [Release, ASAN]
+    env:
+      CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
+      CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+      # Must be set at BUILD time too: gtest test discovery runs post-build
+      # and filters the KMIP 2.0 suite out of the listing when unset.
+      KMIP_RUN_2_0_TESTS: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev ninja-build clang
+
+      - name: Cache Cosmian KMS package
+        uses: actions/cache@v4
+        with:
+          path: ~/cosmian-deb
+          key: cosmian-kms-5.21.0-${{ runner.arch }}
+
+      - name: Install Cosmian KMS
+        run: ci/install-cosmian.sh ~/cosmian-deb
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.build == 'ASAN' && 'Debug' || 'Release' }}
+          -DWITH_ASAN=${{ matrix.build == 'ASAN' && 'ON' || 'OFF' }}
+          -DBUILD_TESTS=ON
+          -DBUILD_KMIP_TESTS=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Start Cosmian KMS
+        run: ci/start-cosmian.sh "${{ runner.temp }}/cosmian"
+
+      - name: Test
+        run: |
+          ctest --test-dir build --output-on-failure
+          log=build/Testing/Temporary/LastTest.log
+          if grep -F 'environment variables not configured' "$log"; then
+            echo "::error::KMIP test environment not configured; integration tests skipped"
+            exit 1
+          fi
+          if ! grep -q 'KmipClientIntegrationTest20\.' "$log"; then
+            echo "::error::KMIP 2.0 test suite did not run"
+            exit 1
+          fi
+          # 'listed below' filters gtest's count-summary line, which names no test
+          unexpected=$(grep -F '[  SKIPPED ]' "$log" \
+            | grep -v -e 'listed below' \
+                      -e 'NetClientOpenSSLCanRetryAfterFailedConnect' \
+                      -e 'KmipClientIntegrationTest\.LocatePageByGroupReportsLocatedItemsWhenServerProvidesIt' \
+            || true)
+          if [ -n "$unexpected" ]; then
+            echo "::error::unexpected skipped tests:"
+            echo "$unexpected"
+            exit 1
+          fi
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-${{ matrix.compiler }}-${{ matrix.build }}
+          path: |
+            ${{ runner.temp }}/cosmian/cosmian.log
+            ${{ runner.temp }}/cosmian/kms.toml
+            build/Testing/
+          if-no-files-found: ignore
+
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: pipx install clang-format==22.1.5
+
+      - name: Check formatting
+        run: ci/check-format.sh
+
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Build docs
+        run: |
+          cmake -S . -B build-docs -DBUILD_DOCS=ON
+          cmake --build build-docs --target doc
