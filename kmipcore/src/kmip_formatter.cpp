@@ -400,9 +400,9 @@ namespace kmipcore {
     }
 
     [[nodiscard]] const char *revocation_reason_name(std::int32_t value) {
-      switch (
-          static_cast<revocation_reason_type>(static_cast<std::uint32_t>(value))
-      ) {
+      switch (static_cast<revocation_reason_type>(
+          static_cast<std::uint32_t>(value)
+      )) {
         case revocation_reason_type::KMIP_REVOKE_UNSPECIFIED:
           return "Unspecified";
         case revocation_reason_type::KMIP_REVOKE_KEY_COMPROMISE:

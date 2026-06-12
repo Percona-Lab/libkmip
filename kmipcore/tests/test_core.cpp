@@ -843,8 +843,10 @@ void test_max_response_size_range_check() {
     req.setMaxResponseSize(2147483648UL);  // INT32_MAX + 1
     assert(false && "Should have thrown on overflow");
   } catch (const KmipException &e) {
-    assert(std::string(e.what()).find("exceeds int32_t maximum") !=
-           std::string::npos);
+    assert(
+        std::string(e.what()).find("exceeds int32_t maximum") !=
+        std::string::npos
+    );
   }
 
   // Invalid: very large size_t value
@@ -852,8 +854,10 @@ void test_max_response_size_range_check() {
     req.setMaxResponseSize(18446744073709551615UL);  // SIZE_MAX on 64-bit
     assert(false && "Should have thrown on overflow");
   } catch (const KmipException &e) {
-    assert(std::string(e.what()).find("exceeds int32_t maximum") !=
-           std::string::npos);
+    assert(
+        std::string(e.what()).find("exceeds int32_t maximum") !=
+        std::string::npos
+    );
   }
 
   std::cout << "MaxResponseSize range check test passed" << std::endl;

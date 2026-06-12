@@ -457,8 +457,8 @@ TEST_F(KmipClientPoolIntegrationTest, ConcurrentOperationsWithReuse) {
 
           // Create a key
           auto key_id = conn->op_create_aes_key(
-              POOL_TEST_NAME_PREFIX + "stress_t" + std::to_string(t) +
-                  "_op" + std::to_string(op),
+              POOL_TEST_NAME_PREFIX + "stress_t" + std::to_string(t) + "_op" +
+                  std::to_string(op),
               TEST_GROUP
           );
           trackKeyForCleanup(key_id);

@@ -283,8 +283,7 @@ namespace kmipcore {
   void RequestMessage::setMaxResponseSize(size_t size) {
     if (size > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {
       throw KmipException(
-          "setMaxResponseSize: size_t value " +
-          std::to_string(size) +
+          "setMaxResponseSize: size_t value " + std::to_string(size) +
           " exceeds int32_t maximum (" +
           std::to_string(std::numeric_limits<int32_t>::max()) + ")"
       );

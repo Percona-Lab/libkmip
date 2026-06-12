@@ -34,7 +34,8 @@ namespace kmipclient {
    *
    * Lifetime semantics:
    * - When stack-allocated: transport closes on scope exit (destructor).
-   * - When shared via std::shared_ptr: transport closes when last handle goes away.
+   * - When shared via std::shared_ptr: transport closes when last handle goes
+   * away.
    * - Can be moved to transfer ownership; copy is deleted for clarity.
    */
   class Kmip {
@@ -68,21 +69,24 @@ namespace kmipclient {
         NetClient::TlsVerificationOptions tls_verification = {false, false},
         bool close_on_destroy = true
     )
-      : m_net_client(std::make_shared<NetClientOpenSSL>(
-            host,
-            port,
-            clientCertificateFn,
-            clientKeyFn,
-            serverCaCertFn,
-            timeout_ms,
-            tls_verification
-        )),
+      : m_net_client(
+            std::make_shared<NetClientOpenSSL>(
+                host,
+                port,
+                clientCertificateFn,
+                clientKeyFn,
+                serverCaCertFn,
+                timeout_ms,
+                tls_verification
+            )
+        ),
         m_client(m_net_client, logger, version, close_on_destroy) {
       m_net_client->connect();
     };
 
     /**
-     * @brief Destroys the facade, closing the transport if close_on_destroy is true.
+     * @brief Destroys the facade, closing the transport if close_on_destroy is
+     * true.
      * @see set_close_on_destroy()
      */
     ~Kmip() = default;
@@ -91,7 +95,8 @@ namespace kmipclient {
     Kmip(Kmip &&) noexcept = default;
     Kmip &operator=(Kmip &&) noexcept = default;
 
-    // Non-copyable (for clarity: shared ownership should use std::shared_ptr<Kmip>)
+    // Non-copyable (for clarity: shared ownership should use
+    // std::shared_ptr<Kmip>)
     Kmip(const Kmip &) = delete;
     Kmip &operator=(const Kmip &) = delete;
 
@@ -115,7 +120,9 @@ namespace kmipclient {
     /**
      * @brief Returns const reference to the underlying transport.
      */
-    [[nodiscard]] const NetClientOpenSSL &transport() const { return *m_net_client; };
+    [[nodiscard]] const NetClientOpenSSL &transport() const {
+      return *m_net_client;
+    };
 
     /**
      * @brief Queries the close_on_destroy setting.

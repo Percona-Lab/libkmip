@@ -180,12 +180,9 @@ namespace kmipclient {
     if (!slot_available) {
       std::ostringstream oss;
       oss << "KmipClientPool: no connection available after " << timeout.count()
-          << "ms (pool size: " << config_.max_connections
-          << ", all " << total_count_ << " connections in use)";
-      throw kmipcore::KmipException(
-          -1,
-          oss.str()
-      );
+          << "ms (pool size: " << config_.max_connections << ", all "
+          << total_count_ << " connections in use)";
+      throw kmipcore::KmipException(-1, oss.str());
     }
     return acquire_locked(std::move(lk));
   }
