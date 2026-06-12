@@ -36,6 +36,17 @@ namespace kmipcore {
    * excessively large Maximum Response Size hint.
    */
   inline constexpr std::size_t KMIP_MAX_MESSAGE_HARD_LIMIT = 16 * 1024 * 1024;
+  /**
+   * Maximum nesting depth accepted when deserializing a TTLV structure tree.
+   *
+   * The wire format allows arbitrarily deep nesting, which would otherwise
+   * let a malicious peer drive unbounded recursion in the parser and exhaust
+   * the call stack. Real KMIP messages are only a handful of levels deep
+   * (Response Message -> Batch Item -> Payload -> Key Block -> Key Value ->
+   * Attributes -> Attribute -> Attribute Value), so this cap leaves ample
+   * headroom for valid traffic while bounding stack usage.
+   */
+  inline constexpr unsigned KMIP_MAX_STRUCTURE_DEPTH = 64;
   /** Suggested buffer size for human-readable error messages. */
   inline constexpr std::size_t KMIP_ERROR_MESSAGE_SIZE = 200;
 

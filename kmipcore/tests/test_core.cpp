@@ -150,6 +150,58 @@ void test_non_zero_padding_is_rejected() {
   std::cout << "Non-zero padding validation test passed" << std::endl;
 }
 
+// Builds `depth` nested empty Structure elements on the wire, innermost
+// first, so the result is a single TTLV tree `depth` levels deep.
+std::vector<uint8_t> build_nested_structures(unsigned depth) {
+  std::vector<uint8_t> buf;
+  for (unsigned i = 0; i < depth; ++i) {
+    const auto len = static_cast<uint32_t>(buf.size());
+    std::vector<uint8_t> wrapper = {
+        0x42,
+        0x00,
+        0x01,
+        static_cast<uint8_t>(KMIP_TYPE_STRUCTURE),
+        static_cast<uint8_t>((len >> 24) & 0xFF),
+        static_cast<uint8_t>((len >> 16) & 0xFF),
+        static_cast<uint8_t>((len >> 8) & 0xFF),
+        static_cast<uint8_t>(len & 0xFF),
+    };
+    wrapper.insert(wrapper.end(), buf.begin(), buf.end());
+    buf = std::move(wrapper);
+  }
+  return buf;
+}
+
+void test_deeply_nested_structure_is_rejected() {
+  // A malicious server can send arbitrarily deep nesting; the parser must
+  // reject it before recursion exhausts the stack.
+  const auto data = build_nested_structures(1000);
+
+  size_t offset = 0;
+  bool threw = false;
+  try {
+    (void) Element::deserialize(data, offset);
+  } catch (const KmipException &) {
+    threw = true;
+  }
+  assert(threw);
+
+  std::cout << "Deeply nested structure rejection test passed" << std::endl;
+}
+
+void test_legitimate_nesting_is_accepted() {
+  // Real KMIP messages are only a handful of levels deep; the depth cap must
+  // leave comfortable headroom for valid traffic.
+  const auto data = build_nested_structures(30);
+
+  size_t offset = 0;
+  auto decoded = Element::deserialize(data, offset);
+  assert(offset == data.size());
+  assert(decoded->type == Type::KMIP_TYPE_STRUCTURE);
+
+  std::cout << "Legitimate nesting acceptance test passed" << std::endl;
+}
+
 void test_date_time_extended_requires_kmip_2_0_for_requests() {
   RequestBatchItem item;
   item.setOperation(KMIP_OP_GET);
@@ -878,6 +930,8 @@ int main() {
   test_date_time_extended_round_trip();
   test_date_time_extended_invalid_length();
   test_non_zero_padding_is_rejected();
+  test_deeply_nested_structure_is_rejected();
+  test_legitimate_nesting_is_accepted();
   test_date_time_extended_requires_kmip_2_0_for_requests();
   test_date_time_extended_requires_kmip_2_0_for_responses();
   test_request_message();
