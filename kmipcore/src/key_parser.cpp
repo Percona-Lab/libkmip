@@ -58,7 +58,7 @@ namespace kmipcore {
       if (auto alg_elem =
               key_block->getChild(tag::KMIP_TAG_CRYPTOGRAPHIC_ALGORITHM)) {
         key_attrs.set_algorithm(
-            static_cast<cryptographic_algorithm>(alg_elem->toEnum())
+            checked_cryptographic_algorithm(alg_elem->toEnum())
         );
       }
       if (auto len_elem =
@@ -123,9 +123,7 @@ namespace kmipcore {
     secret.set_value(
         std::vector<unsigned char>(raw_bytes.begin(), raw_bytes.end())
     );
-    secret.set_secret_type(
-        static_cast<secret_data_type>(secret_type->toEnum())
-    );
+    secret.set_secret_type(checked_secret_data_type(secret_type->toEnum()));
     return secret;
   }
 

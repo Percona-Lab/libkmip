@@ -8,6 +8,7 @@
 #include "kmipcore/attributes_parser.hpp"
 
 #include "kmipcore/kmip_attribute_names.hpp"
+#include "kmipcore/kmip_errors.hpp"
 
 #include <ctime>
 #include <iomanip>
@@ -126,20 +127,18 @@ namespace kmipcore {
 
       switch (elem->tag) {
         case tag::KMIP_TAG_CRYPTOGRAPHIC_ALGORITHM:
-          result.set_algorithm(
-              static_cast<cryptographic_algorithm>(elem->toEnum())
-          );
+          result.set_algorithm(checked_cryptographic_algorithm(elem->toEnum()));
           break;
         case tag::KMIP_TAG_CRYPTOGRAPHIC_LENGTH:
           result.set_crypto_length(elem->toInt());
           break;
         case tag::KMIP_TAG_CRYPTOGRAPHIC_USAGE_MASK:
           result.set_usage_mask(
-              static_cast<cryptographic_usage_mask>(elem->toInt())
+              checked_cryptographic_usage_mask(elem->toInt())
           );
           break;
         case tag::KMIP_TAG_STATE:
-          result.set_state(static_cast<state>(elem->toEnum()));
+          result.set_state(checked_state(elem->toEnum()));
           break;
         case tag::KMIP_TAG_NAME:
           // Name is a Structure: { Name Value (TextString), Name Type (Enum) }
@@ -252,7 +251,7 @@ namespace kmipcore {
         if (raw_name == "Cryptographic Algorithm") {
           if (attr_value_elem) {
             result.set_algorithm(
-                static_cast<cryptographic_algorithm>(attr_value_elem->toEnum())
+                checked_cryptographic_algorithm(attr_value_elem->toEnum())
             );
           }
           continue;
@@ -266,14 +265,14 @@ namespace kmipcore {
         if (raw_name == "Cryptographic Usage Mask") {
           if (attr_value_elem) {
             result.set_usage_mask(
-                static_cast<cryptographic_usage_mask>(attr_value_elem->toInt())
+                checked_cryptographic_usage_mask(attr_value_elem->toInt())
             );
           }
           continue;
         }
         if (raw_name == "State") {
           if (attr_value_elem) {
-            result.set_state(static_cast<state>(attr_value_elem->toEnum()));
+            result.set_state(checked_state(attr_value_elem->toEnum()));
           }
           continue;
         }

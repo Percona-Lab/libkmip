@@ -974,6 +974,61 @@ namespace kmipcore {
   };
 
   // ---------------------------------------------------------------------------
+  // Validation of attacker-controlled enumeration values.
+  //
+  // Enumerations on the wire are unconstrained 4-byte values. Before a parsed
+  // value is cast into one of the scoped enums that drive key-handling
+  // decisions, callers validate it against the known KMIP value tables so a
+  // malicious server cannot inject out-of-range codes.
+  // ---------------------------------------------------------------------------
+
+  /** @brief Whether @p value is a defined Cryptographic Algorithm code. */
+  [[nodiscard]] inline bool
+      is_valid_cryptographic_algorithm(std::int32_t value) noexcept {
+    return value >= static_cast<std::int32_t>(
+                        cryptographic_algorithm::KMIP_CRYPTOALG_UNSET
+                    ) &&
+           value <= static_cast<std::int32_t>(
+                        cryptographic_algorithm::KMIP_CRYPTOALG_ED448
+                    );
+  }
+
+  /** @brief Whether @p value is a defined lifecycle State code. */
+  [[nodiscard]] inline bool is_valid_state(std::int32_t value) noexcept {
+    return value >= static_cast<std::int32_t>(state::KMIP_STATE_PRE_ACTIVE) &&
+           value <= static_cast<std::int32_t>(
+                        state::KMIP_STATE_DESTROYED_COMPROMISED
+                    );
+  }
+
+  /** @brief Whether @p value is a defined Secret Data Type code. */
+  [[nodiscard]] inline bool
+      is_valid_secret_data_type(std::int32_t value) noexcept {
+    const auto raw = static_cast<std::uint32_t>(value);
+    return raw == static_cast<std::uint32_t>(
+                      secret_data_type::KMIP_SECDATA_PASSWORD
+                  ) ||
+           raw == static_cast<std::uint32_t>(
+                      secret_data_type::KMIP_SECDATA_SEED
+                  ) ||
+           raw == static_cast<std::uint32_t>(
+                      secret_data_type::KMIP_SECDATA_EXTENSIONS
+                  );
+  }
+
+  /**
+   * @brief Whether @p value is a valid Cryptographic Usage Mask.
+   *
+   * The mask is a bit field; bits 0..23 (Sign .. FPE Decrypt) are the only
+   * defined flags. A value setting any other bit is rejected.
+   */
+  [[nodiscard]] inline bool
+      is_valid_cryptographic_usage_mask(std::int32_t value) noexcept {
+    constexpr std::uint32_t defined_bits = 0x00FFFFFFu;
+    return (static_cast<std::uint32_t>(value) & ~defined_bits) == 0;
+  }
+
+  // ---------------------------------------------------------------------------
   // Compatibility constants for legacy unqualified enumerator usage.
   // These preserve existing integer-based call sites while the codebase is
   // migrated to explicit scoped-enum references.

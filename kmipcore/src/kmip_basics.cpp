@@ -266,7 +266,11 @@ namespace kmipcore {
             throw KmipException("Invalid length for Boolean");
           }
           std::uint64_t raw = read_be_u64(data, offset);
-          elem->value = Boolean{raw != 0};
+          // KMIP 1.4 §9.1.1.4.6: a Boolean must encode exactly 0 or 1.
+          if (raw != 0 && raw != 1) {
+            throw KmipException("Non-canonical Boolean TTLV value");
+          }
+          elem->value = Boolean{raw == 1};
           break;
         }
         case Type::KMIP_TYPE_ENUMERATION: {

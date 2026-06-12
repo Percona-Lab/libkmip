@@ -37,6 +37,58 @@ namespace kmipcore {
     KmipException(int native_error_code, const std::string &msg);
   };
 
+  // ---------------------------------------------------------------------------
+  // Checked conversions of attacker-controlled enumeration values.
+  //
+  // These validate a raw wire value against the known KMIP value tables and
+  // throw KmipException on an out-of-range code, so the parsers never cast a
+  // malicious value into a scoped enum that steers key-handling decisions.
+  // ---------------------------------------------------------------------------
+
+  [[nodiscard]] inline cryptographic_algorithm
+      checked_cryptographic_algorithm(std::int32_t value) {
+    if (!is_valid_cryptographic_algorithm(value)) {
+      throw KmipException(
+          KMIP_ENUM_UNSUPPORTED,
+          "Unknown Cryptographic Algorithm enumeration value: " +
+              std::to_string(value)
+      );
+    }
+    return static_cast<cryptographic_algorithm>(value);
+  }
+
+  [[nodiscard]] inline state checked_state(std::int32_t value) {
+    if (!is_valid_state(value)) {
+      throw KmipException(
+          KMIP_ENUM_UNSUPPORTED,
+          "Unknown State enumeration value: " + std::to_string(value)
+      );
+    }
+    return static_cast<state>(value);
+  }
+
+  [[nodiscard]] inline secret_data_type
+      checked_secret_data_type(std::int32_t value) {
+    if (!is_valid_secret_data_type(value)) {
+      throw KmipException(
+          KMIP_ENUM_UNSUPPORTED,
+          "Unknown Secret Data Type enumeration value: " + std::to_string(value)
+      );
+    }
+    return static_cast<secret_data_type>(value);
+  }
+
+  [[nodiscard]] inline cryptographic_usage_mask
+      checked_cryptographic_usage_mask(std::int32_t value) {
+    if (!is_valid_cryptographic_usage_mask(value)) {
+      throw KmipException(
+          KMIP_ENUM_UNSUPPORTED,
+          "Invalid Cryptographic Usage Mask value: " + std::to_string(value)
+      );
+    }
+    return static_cast<cryptographic_usage_mask>(value);
+  }
+
 }  // namespace kmipcore
 
 #endif /* KMIPCORE_KMIP_ERRORS_HPP */
