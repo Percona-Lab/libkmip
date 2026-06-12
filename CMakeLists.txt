@@ -10,11 +10,6 @@ enable_testing()
 
 set(KMIP_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 option(WITH_ASAN "Enable AddressSanitizer for project build" OFF)
-option(BUILD_KMIP_TESTS "Build and register libkmip/src/tests.c with CTest" OFF)
-
-if(BUILD_KMIP_TESTS)
-  enable_testing()
-endif()
 
 if(WITH_ASAN)
   if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
@@ -31,8 +26,6 @@ if(WITH_ASAN)
 endif()
 
 
-add_subdirectory(libkmip/src)
-add_subdirectory(kmippp)
 add_subdirectory(kmipcore)
 add_subdirectory(kmipclient)
 
