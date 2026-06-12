@@ -787,6 +787,39 @@ void test_response_required_fields() {
   std::cout << "Response required-fields validation test passed" << std::endl;
 }
 
+void test_message_root_must_hold_structure_value() {
+  // An Element whose declared type is STRUCTURE but whose variant holds a
+  // different alternative must be rejected with a clear error instead of
+  // dereferencing the null result of std::get_if<Structure>.
+  {
+    auto element = std::make_shared<Element>(
+        tag::KMIP_TAG_REQUEST_MESSAGE, Type::KMIP_TYPE_STRUCTURE, Integer{0}
+    );
+    bool threw = false;
+    try {
+      (void) RequestMessage::fromElement(element);
+    } catch (const KmipException &e) {
+      threw = std::string(e.what()).find("Structure") != std::string::npos;
+    }
+    assert(threw);
+  }
+
+  {
+    auto element = std::make_shared<Element>(
+        tag::KMIP_TAG_RESPONSE_MESSAGE, Type::KMIP_TYPE_STRUCTURE, Integer{0}
+    );
+    bool threw = false;
+    try {
+      (void) ResponseMessage::fromElement(element);
+    } catch (const KmipException &e) {
+      threw = std::string(e.what()).find("Structure") != std::string::npos;
+    }
+    assert(threw);
+  }
+
+  std::cout << "Message root structure-value test passed" << std::endl;
+}
+
 void test_request_header_authentication() {
   RequestHeader header;
   header.getProtocolVersion().setMajor(1);
@@ -878,6 +911,7 @@ int main() {
   test_typed_response_batch_items();
   test_locate_payload();
   test_response_required_fields();
+  test_message_root_must_hold_structure_value();
   test_request_header_authentication();
   test_max_response_size_range_check();
   test_default_max_response_size();

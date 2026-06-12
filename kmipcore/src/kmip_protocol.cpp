@@ -338,6 +338,10 @@ namespace kmipcore {
         element->type != Type::KMIP_TYPE_STRUCTURE) {
       throw KmipException("Invalid RequestMessage element");
     }
+    const auto *s = std::get_if<Structure>(&element->value);
+    if (!s) {
+      throw KmipException("RequestMessage element does not hold a Structure");
+    }
     RequestMessage rm;
     auto hdr = element->getChild(tag::KMIP_TAG_REQUEST_HEADER);
     if (hdr) {
@@ -348,7 +352,6 @@ namespace kmipcore {
     validate_element_types_for_version(
         element, rm.header_.getProtocolVersion()
     );
-    const auto *s = std::get_if<Structure>(&element->value);
     for (const auto &child : s->items) {
       if (child->tag == tag::KMIP_TAG_BATCH_ITEM) {
         rm.batchItems_.push_back(RequestBatchItem::fromElement(child));
@@ -500,6 +503,10 @@ namespace kmipcore {
         element->type != Type::KMIP_TYPE_STRUCTURE) {
       throw KmipException("Invalid ResponseMessage element");
     }
+    const auto *s = std::get_if<Structure>(&element->value);
+    if (!s) {
+      throw KmipException("ResponseMessage element does not hold a Structure");
+    }
     ResponseMessage rm;
     auto hdr = element->getChild(tag::KMIP_TAG_RESPONSE_HEADER);
     if (hdr) {
@@ -510,7 +517,6 @@ namespace kmipcore {
     validate_element_types_for_version(
         element, rm.header_.getProtocolVersion()
     );
-    const auto *s = std::get_if<Structure>(&element->value);
     for (const auto &child : s->items) {
       if (child->tag == tag::KMIP_TAG_BATCH_ITEM) {
         rm.batchItems_.push_back(ResponseBatchItem::fromElement(child));
