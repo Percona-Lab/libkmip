@@ -51,9 +51,8 @@ int main(int argc, char **argv) {
   const int num_threads = argc > 7 ? std::stoi(argv[7]) : 4;
   const int max_pool_size = argc > 8 ? std::stoi(argv[8]) : 2;
 
-  std::cout << "Launching " << num_threads
-            << " threads against a pool of max " << max_pool_size
-            << " connections\n";
+  std::cout << "Launching " << num_threads << " threads against a pool of max "
+            << max_pool_size << " connections\n";
 
   // ------------------------------------------------------------------
   // Build the pool.  No connections are created here yet.

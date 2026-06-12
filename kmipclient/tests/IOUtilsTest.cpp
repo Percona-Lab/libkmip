@@ -118,8 +118,7 @@ static_assert(
     "Kmip must be move-constructible"
 );
 static_assert(
-    std::is_move_assignable_v<kmipclient::Kmip>,
-    "Kmip must be move-assignable"
+    std::is_move_assignable_v<kmipclient::Kmip>, "Kmip must be move-assignable"
 );
 static_assert(
     !std::is_copy_constructible_v<kmipclient::Kmip>,
@@ -162,9 +161,8 @@ TEST(IOUtilsTest, SendFailsIfTransportStopsProgress) {
 TEST(IOUtilsTest, AcceptsResponsesLargerThanLegacy64KiBLimit) {
   FakeNetClient nc;
   const std::size_t payload_size = 128 * 1024;
-  nc.response_bytes = build_response_with_payload(
-      std::vector<uint8_t>(payload_size, 0xAB)
-  );
+  nc.response_bytes =
+      build_response_with_payload(std::vector<uint8_t>(payload_size, 0xAB));
 
   kmipclient::IOUtils io(nc);
   const std::vector<uint8_t> request{0x01};
@@ -194,7 +192,9 @@ TEST(IOUtilsTest, RejectsResponseThatExceedsCallerLimit) {
   }
 }
 
-TEST(IOUtilsTest, RejectsResponseThatExceedsHardLimitEvenIfCallerLimitIsHigher) {
+TEST(
+    IOUtilsTest, RejectsResponseThatExceedsHardLimitEvenIfCallerLimitIsHigher
+) {
   FakeNetClient nc;
   nc.response_bytes = build_response_with_payload(
       std::vector<uint8_t>(kmipcore::KMIP_MAX_MESSAGE_HARD_LIMIT + 1, 0x22)
@@ -206,9 +206,7 @@ TEST(IOUtilsTest, RejectsResponseThatExceedsHardLimitEvenIfCallerLimitIsHigher) 
 
   try {
     io.do_exchange(
-        request,
-        response,
-        kmipcore::KMIP_MAX_MESSAGE_HARD_LIMIT * 2
+        request, response, kmipcore::KMIP_MAX_MESSAGE_HARD_LIMIT * 2
     );
     FAIL() << "Expected do_exchange to enforce hard response limit";
   } catch (const kmipclient::KmipIOException &e) {

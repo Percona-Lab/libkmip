@@ -119,7 +119,9 @@ namespace kmipclient {
       kmipcore::ProtocolVersion version,
       bool close_on_destroy
   ) {
-    return std::make_shared<KmipClient>(net_client, logger, version, close_on_destroy);
+    return std::make_shared<KmipClient>(
+        net_client, logger, version, close_on_destroy
+    );
   }
 
   std::shared_ptr<KmipClient> KmipClient::create_shared(
@@ -128,7 +130,9 @@ namespace kmipclient {
       kmipcore::ProtocolVersion version,
       bool close_on_destroy
   ) {
-    return std::make_shared<KmipClient>(std::move(net_client), logger, version, close_on_destroy);
+    return std::make_shared<KmipClient>(
+        std::move(net_client), logger, version, close_on_destroy
+    );
   }
 
   KmipClient::~KmipClient() {
@@ -596,11 +600,7 @@ namespace kmipclient {
       const std::size_t page_size = std::min(remaining, MAX_ITEMS_IN_BATCH);
       std::optional<std::size_t> located_items;
       auto got = op_locate_page_by_group(
-          group,
-          o_type,
-          offset,
-          page_size,
-          &located_items
+          group, o_type, offset, page_size, &located_items
       );
 
       if (got.empty()) {
@@ -655,9 +655,10 @@ namespace kmipclient {
     );
 
     kmipcore::ResponseParser rf(response_bytes, request);
-    auto response = rf.getResponseByBatchItemId<kmipcore::LocateResponseBatchItem>(
-        batch_item_id
-    );
+    auto response =
+        rf.getResponseByBatchItemId<kmipcore::LocateResponseBatchItem>(
+            batch_item_id
+        );
 
     if (located_items != nullptr) {
       const auto total_items = response.getLocatePayload().getLocatedItems();
@@ -699,12 +700,8 @@ namespace kmipclient {
            batch < MAX_BATCHES_IN_SEARCH && result.size() < max_ids;
            ++batch) {
         std::optional<std::size_t> located_items;
-        auto page = op_all_page(
-            o_type,
-            offset,
-            probe_page_size,
-            &located_items
-        );
+        auto page =
+            op_all_page(o_type, offset, probe_page_size, &located_items);
         if (page.empty()) {
           break;
         }
@@ -721,7 +718,8 @@ namespace kmipclient {
           }
         }
 
-        if (located_items.has_value() && offset + probe_page_size >= *located_items) {
+        if (located_items.has_value() &&
+            offset + probe_page_size >= *located_items) {
           break;
         }
         if (!added_any && page.size() < probe_page_size) {

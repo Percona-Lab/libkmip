@@ -325,7 +325,7 @@ namespace kmipclient {
           clientKeyFn,
           serverCaCertFn,
           timeout_ms
-        ) {
+      ) {
     m_tls_verification = tls_verification;
   }
 
@@ -351,8 +351,7 @@ namespace kmipclient {
     );
     if (!new_ctx) {
       throw KmipIOException(
-          kmipcore::KMIP_IO_FAILURE,
-          "SSL_CTX_new failed: " + getOpenSslError()
+          kmipcore::KMIP_IO_FAILURE, "SSL_CTX_new failed: " + getOpenSslError()
       );
     }
 
@@ -397,7 +396,9 @@ namespace kmipclient {
       );
     }
 
-    std::unique_ptr<BIO, BioDeleter> new_bio(BIO_new_ssl_connect(new_ctx.get()));
+    std::unique_ptr<BIO, BioDeleter> new_bio(
+        BIO_new_ssl_connect(new_ctx.get())
+    );
     if (!new_bio) {
       throw KmipIOException(
           kmipcore::KMIP_IO_FAILURE,
@@ -409,8 +410,7 @@ namespace kmipclient {
     BIO_get_ssl(new_bio.get(), &ssl);
     if (!ssl) {
       throw KmipIOException(
-          kmipcore::KMIP_IO_FAILURE,
-          "BIO_get_ssl failed: " + getOpenSslError()
+          kmipcore::KMIP_IO_FAILURE, "BIO_get_ssl failed: " + getOpenSslError()
       );
     }
 
@@ -423,8 +423,7 @@ namespace kmipclient {
     if (m_timeout_ms > 0) {
       if (BIO_set_nbio(new_bio.get(), 1) != 1) {
         throw KmipIOException(
-            kmipcore::KMIP_IO_FAILURE,
-            "BIO_set_nbio(1) failed before connect"
+            kmipcore::KMIP_IO_FAILURE, "BIO_set_nbio(1) failed before connect"
         );
       }
 
@@ -452,8 +451,7 @@ namespace kmipclient {
       restore_socket_blocking(new_bio.get());
       if (BIO_set_nbio(new_bio.get(), 0) != 1) {
         throw KmipIOException(
-            kmipcore::KMIP_IO_FAILURE,
-            "BIO_set_nbio(0) failed after connect"
+            kmipcore::KMIP_IO_FAILURE, "BIO_set_nbio(0) failed after connect"
         );
       }
     } else {
@@ -513,8 +511,7 @@ namespace kmipclient {
     const int ret = BIO_read(bio_.get(), data.data(), dlen);
     if (ret <= 0 && BIO_should_retry(bio_.get()) && is_timeout_errno()) {
       throw KmipIOException(
-          kmipcore::KMIP_IO_FAILURE,
-          timeoutMessage("receive", m_timeout_ms)
+          kmipcore::KMIP_IO_FAILURE, timeoutMessage("receive", m_timeout_ms)
       );
     }
     return ret;

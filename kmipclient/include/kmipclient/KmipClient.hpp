@@ -317,7 +317,8 @@ namespace kmipclient {
     [[nodiscard]] std::vector<kmipcore::ProtocolVersion>
         op_discover_versions() const;
 
-    /** @brief Holds server information and capabilities returned by op_query(). */
+    /** @brief Holds server information and capabilities returned by op_query().
+     */
     struct QueryServerInfo {
       std::vector<kmipcore::operation>
           supported_operations;  ///< Operations supported by server
@@ -359,7 +360,8 @@ namespace kmipclient {
 
     /**
      * @brief Queries the close_on_destroy setting.
-     * @return true if the transport will be closed on destruction, false otherwise.
+     * @return true if the transport will be closed on destruction, false
+     * otherwise.
      */
     [[nodiscard]] bool close_on_destroy() const noexcept {
       return close_on_destroy_;
