@@ -152,9 +152,13 @@ namespace kmipcore {
     }
   }
 
-  std::shared_ptr<Element> Element::deserialize(
-      std::span<const std::uint8_t> data, std::size_t &offset
+  static std::shared_ptr<Element> deserialize_impl(
+      std::span<const std::uint8_t> data, std::size_t &offset, unsigned depth
   ) {
+    if (depth > KMIP_MAX_STRUCTURE_DEPTH) {
+      throw KmipException("TTLV structure nesting depth exceeds limit");
+    }
+
     if (offset + 8 > data.size()) {
       throw KmipException("Buffer too short for header");
     }
@@ -210,7 +214,7 @@ namespace kmipcore {
       std::size_t current_struct_offset = 0;
       while (current_struct_offset < length) {
         std::size_t item_offset = offset;
-        auto child = deserialize(struct_view, item_offset);
+        auto child = deserialize_impl(struct_view, item_offset, depth + 1);
         std::get<Structure>(struct_elem->value).add(child);
         std::size_t consumed = item_offset - offset;
         current_struct_offset += consumed;
@@ -322,6 +326,12 @@ namespace kmipcore {
       offset += padded_length;
       return elem;
     }
+  }
+
+  std::shared_ptr<Element> Element::deserialize(
+      std::span<const std::uint8_t> data, std::size_t &offset
+  ) {
+    return deserialize_impl(data, offset, 0);
   }
 
   // Factory methods
