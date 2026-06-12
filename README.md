@@ -1,81 +1,85 @@
-# libkmip
+# kmipclient
 
-libkmip is an ISO C11 implementation of the Key Management Interoperability
-Protocol (KMIP), an [OASIS][oasis] communication standard for the management
-of objects stored and maintained by key management systems. KMIP defines how
-key management operations and operation data should be encoded and
-communicated, between client and server applications. Supported operations
-include creating, retrieving, and destroying keys. Supported object types
-include:
+A modern C++20 client implementation of the Key Management Interoperability
+Protocol (KMIP), an [OASIS][oasis] communication standard for managing objects
+stored in key management systems. It supports KMIP 1.4 and 2.0 and is tested
+against PyKMIP, HashiCorp Vault, Fortanix DSM, and Cosmian KMS.
 
-* symmetric and asymmetric encryption keys
+The project consists of two libraries:
 
-For more information on KMIP, check out the
-[OASIS KMIP Technical Committee][kmip] and the
-[OASIS KMIP Documentation][spec].
+* **`kmipcore`** — the protocol layer: typed KMIP model, TTLV
+  serialization/parsing, request/response classes. No network code.
+* **`kmipclient`** — the client layer: high-level KMIP operations, an
+  OpenSSL-based transport (replaceable via the `NetClient` interface), and a
+  thread-safe connection pool.
 
-For more information on libkmip, check out the project [Documentation][docs].
+Supported operations include creating, registering, retrieving, locating,
+activating, revoking, and destroying keys and secrets, as well as querying
+server capabilities. See the [kmipclient README](kmipclient/README.md) for
+the full API documentation and usage examples.
+
+## Quick example
+
+```cpp
+#include "kmipclient/Kmip.hpp"
+using namespace kmipclient;
+
+Kmip kmip(host, port, client_cert, client_key, server_ca, timeout_ms);
+auto key_id = kmip.client().op_create_aes_key("mykey", "mygroup");
+auto key    = kmip.client().op_get_key(key_id);
+```
+
+Runnable example programs for every operation live in
+[`kmipclient/examples/`](kmipclient/examples).
+
+## Requirements
+
+* A C++20 compiler (GCC or Clang)
+* CMake 3.10 or newer
+* OpenSSL
 
 ## Build
 
-Configure and build with CMake:
-
 ```bash
-cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build cmake-build-debug -j
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
 ```
 
-By default, `BUILD_KMIP_TESTS` is `OFF`.
+To install, add `cmake --install build` (use `-DCMAKE_INSTALL_PREFIX` to
+choose a custom prefix).
 
-## Run Demos
+## Tests
 
-Demo binaries are created in `cmake-build-debug/libkmip/src/`.
-For example:
-
-```bash
-./cmake-build-debug/libkmip/src/demo_query
-```
-
-## Run Tests
-
-Enable tests at configure time, then run them with CTest:
+Configure with `-DBUILD_TESTS=ON` to build the unit and integration tests
+(GoogleTest is fetched automatically):
 
 ```bash
-cmake -S . -B cmake-build-tests -DCMAKE_BUILD_TYPE=Debug -DBUILD_KMIP_TESTS=ON
-cmake --build cmake-build-tests -j
-ctest --test-dir cmake-build-tests --output-on-failure
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+cmake --build build -j
+ctest --test-dir build --output-on-failure
 ```
 
-`BUILD_KMIP_TESTS=ON` builds `libkmip/src/tests.c` into the `kmip_tests` target
-and registers it with CTest.
+The integration tests require a running KMIP server, configured via the
+`KMIP_ADDR`, `KMIP_PORT`, `KMIP_CLIENT_CA`, `KMIP_CLIENT_KEY`, and
+`KMIP_SERVER_CA` environment variables; they are skipped when these are not
+set. Set `KMIP_RUN_2_0_TESTS=1` (at build time too — test discovery filters
+on it) to also run the KMIP 2.0 suite.
 
-## Build with ASAN
-
-AddressSanitizer can be enabled with `WITH_ASAN=ON` (Clang/GCC):
+### AddressSanitizer
 
 ```bash
-cmake -S . -B cmake-build-asan -DCMAKE_BUILD_TYPE=Debug -DWITH_ASAN=ON -DBUILD_KMIP_TESTS=ON
-cmake --build cmake-build-asan -j
-ctest --test-dir cmake-build-asan --output-on-failure
+cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug -DWITH_ASAN=ON -DBUILD_TESTS=ON
+cmake --build build-asan -j
+ctest --test-dir build-asan --output-on-failure
 ```
 
-## Installation
+## API documentation
 
-Install using CMake:
+Doxygen documentation can be generated with:
 
 ```bash
-cmake -S . -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
-cmake --build cmake-build-release -j
-cmake --install cmake-build-release
+cmake -S . -B build-docs -DBUILD_DOCS=ON
+cmake --build build-docs --target doc
 ```
 
-To install to a custom prefix, add
-`-DCMAKE_INSTALL_PREFIX=/your/prefix/path` when configuring.
-
-See [Installation][install] for more information.
-
-[docs]: https://libkmip.readthedocs.io/en/latest/index.html
-[install]: https://libkmip.readthedocs.io/en/latest/installation.html
-[kmip]: https://www.oasis-open.org/committees/tc_home.php?wg_abbrev=kmip
 [oasis]: https://www.oasis-open.org
-[spec]: https://docs.oasis-open.org/kmip/spec
