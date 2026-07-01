@@ -8,6 +8,7 @@
 #ifndef KMIP_NET_CLIENT_HPP
 #define KMIP_NET_CLIENT_HPP
 
+#include <atomic>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -99,7 +100,7 @@ namespace kmipclient {
      * @brief Checks whether a connection is currently established.
      * @return true when connected, false otherwise.
      */
-    [[nodiscard]] bool is_connected() const { return m_isConnected; }
+    [[nodiscard]] bool is_connected() const noexcept { return m_isConnected; }
     /**
      * @brief Sends bytes over the established connection.
      * @param data Source buffer.
@@ -122,7 +123,7 @@ namespace kmipclient {
     std::string m_serverCaCertificateFn;
     int m_timeout_ms;
     TlsVerificationOptions m_tls_verification{};
-    bool m_isConnected = false;
+    std::atomic<bool> m_isConnected{false};
   };
 }  // namespace kmipclient
 #endif  // KMIP_NET_CLIENT_HPP
