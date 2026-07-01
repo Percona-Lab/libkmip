@@ -11,6 +11,7 @@
 #include "kmipcore/kmip_enums.hpp"
 #include "kmipcore/managed_object.hpp"
 
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -37,7 +38,7 @@ namespace kmipcore {
      * @param attrs Attribute bag (may include state, name, …).
      */
     Secret(
-        const std::vector<unsigned char> &val,
+        std::span<const unsigned char> val,
         secret_data_type type,
         Attributes attrs = {}
     )
@@ -89,8 +90,12 @@ namespace kmipcore {
       };
     }
 
-    /** @brief Returns payload interpreted as UTF-8/byte-preserving text. */
-    [[nodiscard]] std::string as_text() const {
+    /**
+     * @brief Returns payload interpreted as UTF-8/byte-preserving text.
+     * @note Returned in scrubbed memory (@ref secure_string); the payload is
+     *       secret material.
+     */
+    [[nodiscard]] secure_string as_text() const {
       return {value_.begin(), value_.end()};
     }
 

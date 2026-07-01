@@ -104,7 +104,7 @@ namespace {
     return out;
   }
 
-  std::vector<uint8_t>
+  kmipcore::secure_bytes
       serialize_element(const std::shared_ptr<kmipcore::Element> &element) {
     kmipcore::SerializationBuffer buf;
     element->serialize(buf);
@@ -136,7 +136,7 @@ TEST(IOUtilsTest, SendRetriesOnShortWritesUntilComplete) {
 
   kmipclient::IOUtils io(nc);
   const std::vector<uint8_t> request{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  std::vector<uint8_t> response;
+  kmipcore::secure_bytes response;
 
   ASSERT_NO_THROW(io.do_exchange(request, response, 1024));
   EXPECT_EQ(nc.sent_bytes, request);
@@ -151,7 +151,7 @@ TEST(IOUtilsTest, SendFailsIfTransportStopsProgress) {
 
   kmipclient::IOUtils io(nc);
   const std::vector<uint8_t> request{0, 1, 2, 3};
-  std::vector<uint8_t> response;
+  kmipcore::secure_bytes response;
 
   EXPECT_THROW(
       io.do_exchange(request, response, 1024), kmipclient::KmipIOException
@@ -166,7 +166,7 @@ TEST(IOUtilsTest, AcceptsResponsesLargerThanLegacy64KiBLimit) {
 
   kmipclient::IOUtils io(nc);
   const std::vector<uint8_t> request{0x01};
-  std::vector<uint8_t> response;
+  kmipcore::secure_bytes response;
 
   ASSERT_NO_THROW(
       io.do_exchange(request, response, kmipcore::KMIP_MAX_MESSAGE_SIZE)
@@ -181,7 +181,7 @@ TEST(IOUtilsTest, RejectsResponseThatExceedsCallerLimit) {
 
   kmipclient::IOUtils io(nc);
   const std::vector<uint8_t> request{0x01};
-  std::vector<uint8_t> response;
+  kmipcore::secure_bytes response;
 
   try {
     io.do_exchange(request, response, 1024);
@@ -202,7 +202,7 @@ TEST(
 
   kmipclient::IOUtils io(nc);
   const std::vector<uint8_t> request{0x01};
-  std::vector<uint8_t> response;
+  kmipcore::secure_bytes response;
 
   try {
     io.do_exchange(
@@ -257,11 +257,14 @@ TEST(IOUtilsTest, DebugLoggingRedactsSensitiveTtlvFields) {
       )
   );
   response->asStructure()->add(secret_data);
-  nc.response_bytes = serialize_element(response);
+  {
+    const auto sb = serialize_element(response);
+    nc.response_bytes.assign(sb.begin(), sb.end());
+  }
 
   auto logger = std::make_shared<CollectingLogger>();
   kmipclient::IOUtils io(nc, logger);
-  std::vector<uint8_t> response_bytes;
+  kmipcore::secure_bytes response_bytes;
 
   ASSERT_NO_THROW(io.do_exchange(request_bytes, response_bytes, 1024));
   ASSERT_EQ(logger->records.size(), 2u);

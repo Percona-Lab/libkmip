@@ -156,7 +156,7 @@ namespace kmipclient {
         )
     );
 
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -183,7 +183,7 @@ namespace kmipclient {
         )
     );
 
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -214,7 +214,7 @@ namespace kmipclient {
         )
     );
 
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -243,7 +243,7 @@ namespace kmipclient {
           )
       );
 
-      std::vector<uint8_t> response_bytes;
+      kmipcore::secure_bytes response_bytes;
       io->do_exchange(
           request.serialize(), response_bytes, request.getMaxResponseSize()
       );
@@ -300,7 +300,7 @@ namespace kmipclient {
             id, {}, request.getHeader().getProtocolVersion(), true
         )
     );
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -343,7 +343,7 @@ namespace kmipclient {
           )
       );
 
-      std::vector<uint8_t> response_bytes;
+      kmipcore::secure_bytes response_bytes;
       io->do_exchange(
           request.serialize(), response_bytes, request.getMaxResponseSize()
       );
@@ -408,7 +408,7 @@ namespace kmipclient {
             id, {}, request.getHeader().getProtocolVersion(), true
         )
     );
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -448,7 +448,7 @@ namespace kmipclient {
     const auto batch_item_id =
         request.add_batch_item(kmipcore::ActivateRequest(id));
 
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -467,7 +467,7 @@ namespace kmipclient {
     const auto batch_item_id =
         request.add_batch_item(kmipcore::GetAttributeListRequest(id));
 
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -495,7 +495,7 @@ namespace kmipclient {
           )
       );
 
-      std::vector<uint8_t> response_bytes;
+      kmipcore::secure_bytes response_bytes;
       io->do_exchange(
           request.serialize(), response_bytes, request.getMaxResponseSize()
       );
@@ -546,7 +546,7 @@ namespace kmipclient {
           )
       );
 
-      std::vector<uint8_t> response_bytes;
+      kmipcore::secure_bytes response_bytes;
       io->do_exchange(
           request.serialize(), response_bytes, request.getMaxResponseSize()
       );
@@ -649,7 +649,7 @@ namespace kmipclient {
         )
     );
 
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -761,7 +761,7 @@ namespace kmipclient {
     );
     const auto batch_item_id = request.add_batch_item(std::move(item));
 
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -809,7 +809,7 @@ namespace kmipclient {
     item.setRequestPayload(payload);
     const auto batch_item_id = request.add_batch_item(std::move(item));
 
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -856,7 +856,7 @@ namespace kmipclient {
         kmipcore::RevokeRequest(id, reason, message, occurrence_time)
     );
 
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );
@@ -874,7 +874,7 @@ namespace kmipclient {
     const auto batch_item_id =
         request.add_batch_item(kmipcore::DestroyRequest(id));
 
-    std::vector<uint8_t> response_bytes;
+    kmipcore::secure_bytes response_bytes;
     io->do_exchange(
         request.serialize(), response_bytes, request.getMaxResponseSize()
     );

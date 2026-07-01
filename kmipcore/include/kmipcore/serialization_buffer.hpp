@@ -8,6 +8,8 @@
 #ifndef KMIPCORE_SERIALIZATION_BUFFER_HPP
 #define KMIPCORE_SERIALIZATION_BUFFER_HPP
 
+#include "kmipcore/secure_memory.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -155,9 +157,7 @@ namespace kmipcore {
      * Get const reference to underlying vector.
      * @return Reference to internal vector
      */
-    [[nodiscard]] const std::vector<uint8_t> &getBuffer() const {
-      return buffer_;
-    }
+    [[nodiscard]] const secure_bytes &getBuffer() const { return buffer_; }
 
     // ==================== TRANSFER OWNERSHIP ====================
 
@@ -175,7 +175,7 @@ namespace kmipcore {
      *
      * @return Vector containing serialized data
      */
-    std::vector<uint8_t> release();
+    secure_bytes release();
 
     /**
      * Release all heap memory, including reserved capacity.
@@ -188,7 +188,7 @@ namespace kmipcore {
     void shrink();
 
   private:
-    std::vector<uint8_t> buffer_;
+    secure_bytes buffer_;
     size_t current_offset_ = 0;
 
     /**

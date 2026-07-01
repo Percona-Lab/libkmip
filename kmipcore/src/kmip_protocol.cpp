@@ -200,7 +200,9 @@ namespace kmipcore {
 
         auto password = credentialValue->getChild(tag::KMIP_TAG_PASSWORD);
         if (password) {
-          rh.password_ = password->toString();
+          auto pw = password->toString();
+          rh.password_.emplace(pw.begin(), pw.end());
+          secure_clear(pw.data(), pw.size());
         }
       }
     }
@@ -304,7 +306,7 @@ namespace kmipcore {
                            : DEFAULT_MAX_RESPONSE_SIZE;
   }
 
-  std::vector<uint8_t> RequestMessage::serialize() const {
+  secure_bytes RequestMessage::serialize() const {
     if (batchItems_.empty()) {
       throw KmipException(
           "Cannot serialize RequestMessage with no batch items"

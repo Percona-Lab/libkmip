@@ -11,13 +11,14 @@
 
 #include <iomanip>
 #include <iostream>
+#include <span>
 #include <string>
 
 using namespace kmipclient;
 
 namespace {
 
-  void print_hex(const std::vector<unsigned char> &bytes) {
+  void print_hex(std::span<const unsigned char> bytes) {
     for (const auto b : bytes) {
       std::cout << std::hex << std::setw(2) << std::setfill('0')
                 << static_cast<int>(b);

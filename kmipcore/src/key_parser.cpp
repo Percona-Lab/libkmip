@@ -47,7 +47,7 @@ namespace kmipcore {
       }
 
       auto raw_bytes = key_material->toBytes();
-      std::vector<unsigned char> kv(raw_bytes.begin(), raw_bytes.end());
+      secure_bytes kv(raw_bytes.begin(), raw_bytes.end());
 
       // Parse attributes from the key value's Attribute children.
       Attributes key_attrs = AttributesParser::parse(
@@ -120,9 +120,7 @@ namespace kmipcore {
     auto raw_bytes = key_material->toBytes();
 
     Secret secret;
-    secret.set_value(
-        std::vector<unsigned char>(raw_bytes.begin(), raw_bytes.end())
-    );
+    secret.set_value(secure_bytes(raw_bytes.begin(), raw_bytes.end()));
     secret.set_secret_type(checked_secret_data_type(secret_type->toEnum()));
     return secret;
   }

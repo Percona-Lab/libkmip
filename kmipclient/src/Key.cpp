@@ -11,8 +11,8 @@
 
 namespace kmipclient {
 
-  Key::Key(const std::vector<unsigned char> &value, kmipcore::Attributes attrs)
-    : key_value_(value), attributes_(std::move(attrs)) {}
+  Key::Key(std::span<const unsigned char> value, kmipcore::Attributes attrs)
+    : key_value_(value.begin(), value.end()), attributes_(std::move(attrs)) {}
 
   kmipcore::Key Key::to_core_key() const {
     return kmipcore::Key(key_value_, type(), attributes_);

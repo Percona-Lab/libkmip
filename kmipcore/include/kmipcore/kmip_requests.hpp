@@ -117,7 +117,7 @@ namespace kmipcore {
     RegisterSymmetricKeyRequest(
         const std::string &name,
         const std::string &group,
-        const std::vector<unsigned char> &key_value,
+        std::span<const unsigned char> key_value,
         ProtocolVersion version = {}
     );
   };
@@ -153,7 +153,7 @@ namespace kmipcore {
     RegisterSecretRequest(
         const std::string &name,
         const std::string &group,
-        const std::vector<unsigned char> &secret,
+        std::span<const unsigned char> secret,
         secret_data_type secret_type,
         ProtocolVersion version = {}
     );

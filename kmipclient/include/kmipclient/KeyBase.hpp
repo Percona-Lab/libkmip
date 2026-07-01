@@ -36,7 +36,7 @@ namespace kmipclient {
 
     // ---- Raw bytes ----
 
-    [[nodiscard]] const std::vector<unsigned char> &value() const noexcept {
+    [[nodiscard]] const kmipcore::secure_bytes &value() const noexcept {
       return key_value_;
     }
 
@@ -103,11 +103,10 @@ namespace kmipclient {
      * @param value  Key material bytes.
      * @param attrs  Type-safe attribute bag (algorithm, length, mask, …).
      */
-    Key(const std::vector<unsigned char> &value,
-        kmipcore::Attributes attrs = {});
+    Key(std::span<const unsigned char> value, kmipcore::Attributes attrs = {});
 
   private:
-    std::vector<unsigned char> key_value_;
+    kmipcore::secure_bytes key_value_;
     kmipcore::Attributes attributes_;
   };
 

@@ -154,7 +154,7 @@ void testRelease() {
 
   EXPECT(buf.size() == 5);
 
-  std::vector<uint8_t> result = buf.release();
+  secure_bytes result = buf.release();
 
   EXPECT(result.size() == 5);
   EXPECT(result[0] == 0x11);

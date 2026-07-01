@@ -40,7 +40,7 @@ namespace kmipcore {
      * @param attrs  Type-safe attribute bag.
      */
     explicit Key(
-        const std::vector<unsigned char> &value,
+        std::span<const unsigned char> value,
         KeyType k_type,
         Attributes attrs = {}
     )

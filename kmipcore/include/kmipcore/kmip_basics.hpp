@@ -14,6 +14,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -146,8 +147,7 @@ namespace kmipcore {
     /** @brief Creates a Boolean element. */
     static std::shared_ptr<Element> createBoolean(Tag t, bool v);
     /** @brief Creates a Text String element. */
-    static std::shared_ptr<Element>
-        createTextString(Tag t, const std::string &v);
+    static std::shared_ptr<Element> createTextString(Tag t, std::string_view v);
     /** @brief Creates a Byte String element. */
     static std::shared_ptr<Element>
         createByteString(Tag t, const std::vector<uint8_t> &v);

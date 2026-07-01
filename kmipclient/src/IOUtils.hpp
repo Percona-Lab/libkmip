@@ -11,6 +11,7 @@
 #include "kmipclient/NetClient.hpp"
 #include "kmipclient/types.hpp"
 #include "kmipcore/kmip_logger.hpp"
+#include "kmipcore/secure_memory.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -27,15 +28,15 @@ namespace kmipclient {
       : net_client(nc), logger_(logger) {};
 
     void do_exchange(
-        const std::vector<uint8_t> &request_bytes,
-        std::vector<uint8_t> &response_bytes,
+        std::span<const uint8_t> request_bytes,
+        kmipcore::secure_bytes &response_bytes,
         size_t max_message_size
     );
 
   private:
     void log_debug(const char *event, std::span<const uint8_t> ttlv) const;
-    void send(const std::vector<uint8_t> &request_bytes) const;
-    std::vector<uint8_t> receive_message(size_t max_message_size);
+    void send(std::span<const uint8_t> request_bytes) const;
+    kmipcore::secure_bytes receive_message(size_t max_message_size);
 
     /**
      * Reads exactly n bytes from the network into the buffer.
