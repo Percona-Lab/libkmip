@@ -330,14 +330,7 @@ namespace kmipclient {
   }
 
   NetClientOpenSSL::~NetClientOpenSSL() {
-    // Avoid calling virtual methods from destructor.
-    m_isConnected = false;
-    if (bio_) {
-      bio_.reset();
-    }
-    if (ctx_) {
-      ctx_.reset();
-    }
+    close();
   }
 
   bool NetClientOpenSSL::connect() {
@@ -478,13 +471,8 @@ namespace kmipclient {
 
   void NetClientOpenSSL::close() {
     m_isConnected = false;
-    if (bio_) {
-      // BIO_free_all is called by unique_ptr reset
-      bio_.reset();
-    }
-    if (ctx_) {
-      ctx_.reset();
-    }
+    bio_.reset();
+    ctx_.reset();
   }
 
   int NetClientOpenSSL::send(std::span<const std::uint8_t> data) {
