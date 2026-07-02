@@ -45,6 +45,9 @@ target_include_directories(
 )
 
 target_link_libraries(kmipclient PUBLIC kmipcore OpenSSL::SSL OpenSSL::Crypto Threads::Threads)
+if(WIN32)
+  target_link_libraries(kmipclient PUBLIC ws2_32)
+endif()
 
 set_property(TARGET kmipclient PROPERTY POSITION_INDEPENDENT_CODE ON)
 
