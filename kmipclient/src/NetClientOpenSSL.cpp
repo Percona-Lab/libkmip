@@ -9,19 +9,25 @@
 
 #include "kmipclient/KmipIOException.hpp"
 
-#include <arpa/inet.h>
 #include <cerrno>
 #include <chrono>
 #include <cstring>
-#include <fcntl.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
-#include <poll.h>
+#include <openssl/x509v3.h>
 #include <sstream>
-#include <sys/socket.h>
-#include <sys/time.h>
+
+#ifdef _WIN32
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+#else
+  #include <fcntl.h>
+  #include <poll.h>
+  #include <sys/socket.h>
+  #include <sys/time.h>
+#endif
 
 namespace kmipclient {
 
@@ -41,20 +47,69 @@ namespace kmipclient {
     return errStr;
   }
 
+#ifdef _WIN32
+  static int last_socket_error() {
+    return WSAGetLastError();
+  }
+  static void clear_socket_error() {
+    WSASetLastError(0);
+  }
+  static std::string socket_error_string(int err) {
+    char buf[256] = {};
+    const DWORD len = FormatMessageA(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr,
+        static_cast<DWORD>(err),
+        0,
+        buf,
+        sizeof(buf),
+        nullptr
+    );
+    std::string msg(buf, len);
+    while (!msg.empty() &&
+           (msg.back() == '\r' || msg.back() == '\n' || msg.back() == ' ')) {
+      msg.pop_back();
+    }
+    if (msg.empty()) {
+      return "Winsock error " + std::to_string(err);
+    }
+    return msg;
+  }
+  // WSAETIMEDOUT: SO_RCVTIMEO/SO_SNDTIMEO expired. WSAEWOULDBLOCK is the
+  // Windows analogue of EAGAIN on a socket with a pending timeout.
+  static bool is_timeout_socket_error(int err) {
+    return err == WSAETIMEDOUT || err == WSAEWOULDBLOCK;
+  }
+#else
+  static int last_socket_error() {
+    return errno;
+  }
+  static void clear_socket_error() {
+    errno = 0;
+  }
+  static std::string socket_error_string(int err) {
+    return strerror(err);
+  }
+  static bool is_timeout_socket_error(int err) {
+    return err == EAGAIN || err == EWOULDBLOCK || err == ETIMEDOUT;
+  }
+#endif
+
   static std::string timeoutMessage(const char *op, int timeout_ms) {
     std::ostringstream oss;
     oss << "KMIP " << op << " timed out after " << timeout_ms << "ms";
     return oss.str();
   }
 
+  // a2i_IPADDRESS is a pure parser (accepts IPv4 dotted-quad and IPv6),
+  // so this works before Winsock is initialized on Windows.
   static bool is_ip_address(const std::string &host) {
-    in_addr addr4{};
-    if (inet_pton(AF_INET, host.c_str(), &addr4) == 1) {
-      return true;
+    ASN1_OCTET_STRING *addr = a2i_IPADDRESS(host.c_str());
+    if (addr == nullptr) {
+      return false;
     }
-
-    in6_addr addr6{};
-    return inet_pton(AF_INET6, host.c_str(), &addr6) == 1;
+    ASN1_OCTET_STRING_free(addr);
+    return true;
   }
 
   // TLS_method() was introduced in OpenSSL 1.1.0.
@@ -205,8 +260,13 @@ namespace kmipclient {
       remaining_ms = 1;
     }
 
+#ifdef _WIN32
+    WSAPOLLFD pfd{};
+    pfd.fd = static_cast<SOCKET>(fd);
+#else
     struct pollfd pfd{};
     pfd.fd = fd;
+#endif
     if (BIO_should_read(bio)) {
       pfd.events |= POLLIN;
     }
@@ -218,9 +278,13 @@ namespace kmipclient {
     }
 
     int poll_ret = 0;
+#ifdef _WIN32
+    poll_ret = WSAPoll(&pfd, 1, static_cast<int>(remaining_ms));
+#else
     do {
       poll_ret = poll(&pfd, 1, static_cast<int>(remaining_ms));
     } while (poll_ret < 0 && errno == EINTR);
+#endif
 
     if (poll_ret == 0) {
       throw KmipIOException(
@@ -231,7 +295,7 @@ namespace kmipclient {
       throw KmipIOException(
           kmipcore::KMIP_IO_FAILURE,
           std::string("poll failed while waiting for ") + op + ": " +
-              strerror(errno)
+              socket_error_string(last_socket_error())
       );
     }
   }
@@ -245,11 +309,22 @@ namespace kmipclient {
       );
     }
 
+#ifdef _WIN32
+    u_long blocking_mode = 0;
+    if (ioctlsocket(static_cast<SOCKET>(fd), FIONBIO, &blocking_mode) != 0) {
+      throw KmipIOException(
+          kmipcore::KMIP_IO_FAILURE,
+          "ioctlsocket(FIONBIO) failed: " +
+              socket_error_string(last_socket_error())
+      );
+    }
+#else
     const int flags = fcntl(fd, F_GETFL, 0);
     if (flags < 0) {
       throw KmipIOException(
           kmipcore::KMIP_IO_FAILURE,
-          std::string("fcntl(F_GETFL) failed: ") + strerror(errno)
+          std::string("fcntl(F_GETFL) failed: ") +
+              socket_error_string(last_socket_error())
       );
     }
 
@@ -257,9 +332,11 @@ namespace kmipclient {
     if (fcntl(fd, F_SETFL, desired_flags) != 0) {
       throw KmipIOException(
           kmipcore::KMIP_IO_FAILURE,
-          std::string("fcntl(F_SETFL) failed: ") + strerror(errno)
+          std::string("fcntl(F_SETFL) failed: ") +
+              socket_error_string(last_socket_error())
       );
     }
+#endif
   }
 
   // Apply SO_RCVTIMEO / SO_SNDTIMEO on the underlying socket so that every
@@ -276,30 +353,42 @@ namespace kmipclient {
       return;
     }
 
+#ifdef _WIN32
+    const DWORD tv = static_cast<DWORD>(timeout_ms);
+    const SOCKET sock = static_cast<SOCKET>(fd);
+#else
     struct timeval tv{};
     tv.tv_sec = timeout_ms / 1000;
     tv.tv_usec = (timeout_ms % 1000) * 1000;
+    const int sock = fd;
+#endif
 
-    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) != 0) {
+    if (setsockopt(
+            sock,
+            SOL_SOCKET,
+            SO_RCVTIMEO,
+            reinterpret_cast<const char *>(&tv),
+            sizeof(tv)
+        ) != 0) {
       throw KmipIOException(
           kmipcore::KMIP_IO_FAILURE,
           "Failed to set SO_RCVTIMEO (" + std::to_string(timeout_ms) +
-              "ms): " + strerror(errno)
+              "ms): " + socket_error_string(last_socket_error())
       );
     }
-    if (setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) != 0) {
+    if (setsockopt(
+            sock,
+            SOL_SOCKET,
+            SO_SNDTIMEO,
+            reinterpret_cast<const char *>(&tv),
+            sizeof(tv)
+        ) != 0) {
       throw KmipIOException(
           kmipcore::KMIP_IO_FAILURE,
           "Failed to set SO_SNDTIMEO (" + std::to_string(timeout_ms) +
-              "ms): " + strerror(errno)
+              "ms): " + socket_error_string(last_socket_error())
       );
     }
-  }
-
-  // Returns true when errno indicates that a socket operation was interrupted
-  // by the kernel because the configured SO_RCVTIMEO / SO_SNDTIMEO expired.
-  static bool is_timeout_errno() {
-    return errno == EAGAIN || errno == EWOULDBLOCK || errno == ETIMEDOUT;
   }
 
   bool NetClientOpenSSL::checkConnected() {
@@ -480,9 +569,10 @@ namespace kmipclient {
       return -1;
     }
     const int dlen = static_cast<int>(data.size());
-    errno = 0;
+    clear_socket_error();
     const int ret = BIO_write(bio_.get(), data.data(), dlen);
-    if (ret <= 0 && BIO_should_retry(bio_.get()) && is_timeout_errno()) {
+    if (ret <= 0 && BIO_should_retry(bio_.get()) &&
+        is_timeout_socket_error(last_socket_error())) {
       throw KmipIOException(
           kmipcore::KMIP_IO_FAILURE, timeoutMessage("send", m_timeout_ms)
       );
@@ -495,9 +585,10 @@ namespace kmipclient {
       return -1;
     }
     const int dlen = static_cast<int>(data.size());
-    errno = 0;
+    clear_socket_error();
     const int ret = BIO_read(bio_.get(), data.data(), dlen);
-    if (ret <= 0 && BIO_should_retry(bio_.get()) && is_timeout_errno()) {
+    if (ret <= 0 && BIO_should_retry(bio_.get()) &&
+        is_timeout_socket_error(last_socket_error())) {
       throw KmipIOException(
           kmipcore::KMIP_IO_FAILURE, timeoutMessage("receive", m_timeout_ms)
       );
