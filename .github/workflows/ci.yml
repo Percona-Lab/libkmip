@@ -120,3 +120,64 @@ jobs:
         run: |
           cmake -S . -B build-docs -DBUILD_DOCS=ON
           cmake --build build-docs --target doc
+
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install ninja openssl@3
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTS=ON
+          -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@3)
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Check unit suites ran
+        run: ci/check-unit-suites.sh build/Testing/Temporary/LastTest.log
+
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenSSL
+        run: choco install openssl -y --no-progress
+
+      - name: Locate OpenSSL
+        shell: bash
+        run: |
+          for dir in "/c/Program Files/OpenSSL" "/c/Program Files/OpenSSL-Win64"; do
+            if [ -e "$dir/include/openssl/ssl.h" ]; then
+              win=$(cygpath -w "$dir")
+              echo "OPENSSL_ROOT_DIR=$win" >> "$GITHUB_ENV"
+              echo "$win\\bin" >> "$GITHUB_PATH"
+              exit 0
+            fi
+          done
+          echo "::error::OpenSSL install not found"
+          exit 1
+
+      - name: Configure
+        run: cmake -S . -B build -DBUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Check unit suites ran
+        shell: bash
+        run: ci/check-unit-suites.sh build/Testing/Temporary/LastTest.log
