@@ -10,21 +10,29 @@
 #include "kmipcore/kmip_errors.hpp"
 #include "kmipcore/serialization_buffer.hpp"
 
-#include <arpa/inet.h>
+#include <bit>
 #include <cstring>
 #include <iomanip>
 #include <vector>
 
 namespace kmipcore {
 
-  // Helper functions for big-endian
+  // Helper functions for big-endian: return a value whose in-memory byte
+  // order is big-endian, so it can be written to the wire with memcpy.
   static std::uint32_t to_be32(std::uint32_t v) {
-    return htonl(v);
+    if constexpr (std::endian::native == std::endian::big) {
+      return v;
+    }
+    return ((v & 0x000000FFu) << 24) | ((v & 0x0000FF00u) << 8) |
+           ((v & 0x00FF0000u) >> 8) | ((v & 0xFF000000u) >> 24);
   }
   static std::uint64_t to_be64(std::uint64_t v) {
-    std::uint32_t high = htonl(v >> 32);
-    std::uint32_t low = htonl(v & 0xFFFFFFFF);
-    return (static_cast<std::uint64_t>(low) << 32) | high;
+    if constexpr (std::endian::native == std::endian::big) {
+      return v;
+    }
+    return (static_cast<std::uint64_t>(to_be32(static_cast<std::uint32_t>(v)))
+            << 32) |
+           to_be32(static_cast<std::uint32_t>(v >> 32));
   }
   // Safe big-endian decoders from raw byte spans.
   static std::uint32_t
