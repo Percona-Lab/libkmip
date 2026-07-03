@@ -15,7 +15,9 @@
 
 namespace kmipcore {
 
-  class Element;
+  // Element is defined as a struct; the forward declaration must use the
+  // same class-key because MSVC encodes it in mangled names (C4099).
+  struct Element;
   class RequestMessage;
   class ResponseMessage;
 
