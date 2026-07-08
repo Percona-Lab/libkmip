@@ -15,6 +15,7 @@
 #include <limits>
 #include <span>
 #include <vector>
+
 namespace kmipcore {
 
   namespace {
@@ -285,7 +286,6 @@ namespace kmipcore {
       add_batch_item(item);
     }
   }
-
 
   void RequestMessage::setMaxResponseSize(size_t size) {
     if (size > static_cast<size_t>(std::numeric_limits<int32_t>::max())) {

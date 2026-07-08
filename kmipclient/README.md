@@ -839,4 +839,3 @@ connection parameters:
 ```
 example_get_tls_verify <host> <port> <client_cert> <client_key> <server_ca_cert> <key_id> <mode: strict, no-hostname, insecure>
 ```
-

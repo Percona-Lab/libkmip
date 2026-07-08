@@ -17,7 +17,6 @@
 #include <variant>
 #include <vector>
 
-
 namespace kmipcore {
 
   // Forward declaration for SerializationBuffer
@@ -200,7 +199,6 @@ namespace kmipcore {
     /** @brief Converts value to Interval representation. */
     [[nodiscard]] uint32_t toInterval() const;
   };
-
 
 }  // namespace kmipcore
 

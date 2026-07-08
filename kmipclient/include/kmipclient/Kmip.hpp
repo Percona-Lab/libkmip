@@ -7,6 +7,7 @@
 
 #ifndef KMIP_HPP
 #define KMIP_HPP
+
 #include "kmipclient/KmipClient.hpp"
 #include "kmipclient/NetClientOpenSSL.hpp"
 #include "kmipcore/kmip_protocol.hpp"
@@ -14,6 +15,7 @@
 #include <memory>
 
 namespace kmipclient {
+
   /**
    * @brief Convenience wrapper that owns transport and client instances.
    *
@@ -167,5 +169,7 @@ namespace kmipclient {
     /** @brief High-level KMIP protocol client bound to @ref m_net_client. */
     KmipClient m_client;
   };
+
 }  // namespace kmipclient
+
 #endif  // KMIP_HPP

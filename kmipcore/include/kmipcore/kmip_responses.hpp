@@ -299,7 +299,6 @@ namespace kmipcore {
     std::string clusterInfo_;
   };
 
-
 }  // namespace kmipcore
 
 #endif /* KMIPCORE_KMIP_RESPONSES_HPP */

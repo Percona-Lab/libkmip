@@ -9,7 +9,6 @@
 
 namespace kmipclient {
 
-
   std::unique_ptr<Key> X509Certificate::clone() const {
     return std::make_unique<X509Certificate>(*this);
   }

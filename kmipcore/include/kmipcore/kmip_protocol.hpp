@@ -15,6 +15,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 namespace kmipcore {
 
   /**
@@ -313,7 +314,6 @@ namespace kmipcore {
       batchItems_.clear();
       nextBatchItemId_ = 1;
     }
-
 
     /** @brief Sets maximum response size hint in request header. */
     void setMaxResponseSize(size_t size);

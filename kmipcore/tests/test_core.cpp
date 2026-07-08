@@ -13,7 +13,9 @@
 #include <kmipcore/kmip_protocol.hpp>
 #include <kmipcore/kmip_responses.hpp>
 #include <kmipcore/serialization_buffer.hpp>
+
 using namespace kmipcore;
+
 void test_integer() {
   auto elem = Element::createInteger(tag::KMIP_TAG_ACTIVATION_DATE, 12345);
   SerializationBuffer buf_i;
@@ -28,6 +30,7 @@ void test_integer() {
   assert(std::get<Integer>(decoded->value).value == 12345);
   std::cout << "Integer test passed" << std::endl;
 }
+
 void test_structure() {
   auto root = Element::createStructure(tag::KMIP_TAG_APPLICATION_DATA);
   auto child1 = Element::createInteger(tag::KMIP_TAG_APPLICATION_NAMESPACE, 10);
@@ -680,6 +683,7 @@ void test_typed_response_batch_items() {
 
   std::cout << "Typed response batch item tests passed" << std::endl;
 }
+
 void test_locate_payload() {
   LocateRequestPayload locReq;
   locReq.setMaximumItems(10);

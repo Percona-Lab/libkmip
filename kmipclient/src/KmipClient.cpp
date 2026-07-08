@@ -196,7 +196,6 @@ namespace kmipclient {
         .getUniqueIdentifier();
   }
 
-
   std::string KmipClient::op_create_aes_key(
       const std::string &name,
       const std::string &group,

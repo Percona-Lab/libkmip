@@ -25,7 +25,6 @@ namespace kmipcore {
   // Construct one and pass it directly to RequestMessage::addBatchItem().
   // ---------------------------------------------------------------------------
 
-
   // ---------------------------------------------------------------------------
   // Template for simple requests that only carry a unique identifier.
   // ---------------------------------------------------------------------------
@@ -57,7 +56,6 @@ namespace kmipcore {
   using DestroyRequest = SimpleIdRequest<KMIP_OP_DESTROY>;
   /** @brief Typed request alias for KMIP Get Attribute List operation. */
   using GetAttributeListRequest = SimpleIdRequest<KMIP_OP_GET_ATTRIBUTE_LIST>;
-
 
   /** @brief Request for KMIP Get Attributes operation. */
   class GetAttributesRequest : public RequestBatchItem {
@@ -200,7 +198,6 @@ namespace kmipcore {
         time_t occurrence_time = 0
     );
   };
-
 
 }  // namespace kmipcore
 

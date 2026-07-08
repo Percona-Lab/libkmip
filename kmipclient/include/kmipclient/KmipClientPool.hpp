@@ -62,11 +62,13 @@ namespace kmipclient {
   public:
     // ---- Constants
     // -------------------------------------------------------------
+
     /** Default upper bound for simultaneously open KMIP connections. */
     static constexpr size_t DEFAULT_MAX_CONNECTIONS = 16;
 
     // ---- Config
     // ----------------------------------------------------------------
+
     /**
      * @brief Connection and pooling settings used to construct @ref
      * KmipClientPool.
@@ -95,6 +97,7 @@ namespace kmipclient {
 
     // ---- BorrowedClient
     // --------------------------------------------------------
+
     /**
      * RAII guard wrapping a single borrowed connection.
      *

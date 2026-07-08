@@ -58,7 +58,6 @@ namespace kmipcore {
   /** Generic sentinel value representing unset enum/int fields. */
   inline constexpr std::int32_t KMIP_UNSET = -1;
 
-
   inline constexpr std::int32_t KMIP_OK = 0;
   inline constexpr std::int32_t KMIP_NOT_IMPLEMENTED = -1;
   inline constexpr std::int32_t KMIP_ERROR_BUFFER_FULL = -2;
@@ -375,7 +374,6 @@ namespace kmipcore {
     KMIP_WRAPTYPE_NOT_WRAPPED = 0x01,
     KMIP_WRAPTYPE_AS_REGISTERED = 0x02
   };
-
 
   enum class mask_generator : std::uint32_t {
     // KMIP 1.4
@@ -2539,7 +2537,6 @@ namespace kmipcore {
       static_cast<std::uint32_t>(secret_data_type::KMIP_SECDATA_SEED);
   inline constexpr std::uint32_t KMIP_SECDATA_EXTENSIONS =
       static_cast<std::uint32_t>(secret_data_type::KMIP_SECDATA_EXTENSIONS);
-
 
 }  // namespace kmipcore
 
