@@ -12,6 +12,7 @@
 #include <array>
 #include <string_view>
 #include <vector>
+
 namespace kmipclient {
 
   unsigned char char2int(const char input) {
@@ -73,6 +74,5 @@ namespace kmipclient {
     }
     return out;
   }
-
 
 }  // namespace kmipclient

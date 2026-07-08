@@ -20,6 +20,7 @@ void BIO_free_all(BIO *);
 }
 
 namespace kmipclient {
+
   /**
    * @brief OpenSSL BIO-based implementation of @ref NetClient.
    */
@@ -96,6 +97,7 @@ namespace kmipclient {
 
     bool checkConnected();
   };
+
 }  // namespace kmipclient
 
 #endif  // KMIPNETCLILENTOPENSSL_HPP

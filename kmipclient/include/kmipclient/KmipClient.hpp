@@ -130,7 +130,6 @@ namespace kmipclient {
         const std::string &name, const std::string &group, const Secret &secret
     ) const;
 
-
     /**
      * @brief Executes KMIP Create to generate a server-side AES key.
      * @param name Value of the KMIP "Name" attribute.
@@ -209,7 +208,6 @@ namespace kmipclient {
     [[nodiscard]] std::vector<std::string>
         op_locate_by_name(const std::string &name, object_type o_type) const;
 
-
     /**
      * @brief Executes KMIP Locate using the object group filter.
      * @param group Group name to match.
@@ -246,7 +244,6 @@ namespace kmipclient {
         std::optional<std::size_t> *located_items = nullptr
     ) const;
 
-
     /**
      * @brief Executes KMIP Revoke for a managed object.
      * @param id Unique identifier of the object to revoke.
@@ -263,6 +260,7 @@ namespace kmipclient {
         const std::string &message,
         time_t occurrence_time
     ) const;
+
     /**
      * @brief Executes KMIP Destroy for a managed object.
      * @param id Unique identifier of the object to destroy.
@@ -304,7 +302,6 @@ namespace kmipclient {
         std::size_t page_size,
         std::optional<std::size_t> *located_items = nullptr
     ) const;
-
 
     /**
      * @brief Executes KMIP Discover Versions to query supported protocol
@@ -367,7 +364,6 @@ namespace kmipclient {
       return close_on_destroy_;
     }
 
-
   private:
     NetClient *net_client = nullptr;
     std::shared_ptr<NetClient> net_client_owner_;
@@ -381,4 +377,5 @@ namespace kmipclient {
   };
 
 }  // namespace kmipclient
+
 #endif  // KMIP_CLIENT_HPP

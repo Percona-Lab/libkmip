@@ -14,6 +14,7 @@
 #include <string>
 
 namespace kmipclient {
+
   /**
    * @brief Abstract transport interface used by @ref KmipClient.
    *
@@ -68,12 +69,12 @@ namespace kmipclient {
     NetClient &operator=(const NetClient &) = delete;
     NetClient(NetClient &&) = delete;
     NetClient &operator=(NetClient &&) = delete;
+
     /**
      * @brief Establishes network/TLS connection to the KMIP server.
      *        Must honor @ref m_timeout_ms for connect + handshake phases.
      * @return true on successful connection establishment, false otherwise.
      */
-
     virtual bool connect() = 0;
     /** @brief Closes the connection and releases underlying resources. */
     virtual void close() = 0;
@@ -101,6 +102,7 @@ namespace kmipclient {
      * @return true when connected, false otherwise.
      */
     [[nodiscard]] bool is_connected() const noexcept { return m_isConnected; }
+
     /**
      * @brief Sends bytes over the established connection.
      * @param data Source buffer.
@@ -125,5 +127,7 @@ namespace kmipclient {
     TlsVerificationOptions m_tls_verification{};
     std::atomic<bool> m_isConnected{false};
   };
+
 }  // namespace kmipclient
+
 #endif  // KMIP_NET_CLIENT_HPP

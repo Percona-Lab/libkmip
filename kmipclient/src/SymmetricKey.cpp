@@ -44,7 +44,6 @@ namespace kmipclient {
 
   }  // anonymous namespace
 
-
   std::unique_ptr<Key> SymmetricKey::clone() const {
     return std::make_unique<SymmetricKey>(*this);
   }

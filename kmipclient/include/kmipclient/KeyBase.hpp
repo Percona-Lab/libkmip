@@ -93,6 +93,7 @@ namespace kmipclient {
     /** @brief Build protocol-level representation from the client key object.
      */
     [[nodiscard]] kmipcore::Key to_core_key() const;
+
     /** @brief Build the corresponding client key subclass from protocol-level
      * data. */
     [[nodiscard]] static std::unique_ptr<Key>

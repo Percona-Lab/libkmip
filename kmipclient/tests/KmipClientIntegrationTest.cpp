@@ -27,9 +27,7 @@
 
 using namespace kmipclient;
 
-
 static std::string TESTING_NAME_PREFIX = "tests_";
-
 
 // Helper class to manage environment variables
 class KmipTestConfig {

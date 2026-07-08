@@ -19,7 +19,6 @@ if(WITH_ASAN)
   endif()
 endif()
 
-
 add_subdirectory(kmipcore)
 add_subdirectory(kmipclient)
 

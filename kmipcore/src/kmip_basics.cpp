@@ -64,7 +64,6 @@ namespace kmipcore {
     }
   }
 
-
   void Element::serialize(SerializationBuffer &buf) const {
     // Write Tag (3 bytes, big-endian)
     const auto raw_tag = static_cast<std::uint32_t>(tag);

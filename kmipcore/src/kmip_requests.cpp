@@ -861,5 +861,4 @@ namespace kmipcore {
     setRequestPayload(payload);
   }
 
-
 }  // namespace kmipcore

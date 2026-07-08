@@ -9,7 +9,6 @@
 
 namespace kmipclient {
 
-
   std::unique_ptr<Key> PrivateKey::clone() const {
     return std::make_unique<PrivateKey>(*this);
   }
