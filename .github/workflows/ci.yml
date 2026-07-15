@@ -14,14 +14,15 @@ permissions:
 
 jobs:
   build-test:
-    name: ${{ matrix.compiler }} ${{ matrix.build }}
-    runs-on: ubuntu-24.04
+    name: ${{ matrix.compiler }} ${{ matrix.build }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         compiler: [gcc, clang]
         build: [Release, ASAN]
+        arch: [x64, arm64]
     env:
       CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
       CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
@@ -87,7 +88,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: failure-${{ matrix.compiler }}-${{ matrix.build }}
+          name: failure-${{ matrix.compiler }}-${{ matrix.build }}-${{ matrix.arch }}
           path: |
             ${{ runner.temp }}/cosmian/cosmian.log
             ${{ runner.temp }}/cosmian/kms.toml
