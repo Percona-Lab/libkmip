@@ -64,9 +64,9 @@ namespace kmipclient {
     virtual ~NetClient() = default;
     // no copy, no move
     NetClient(const NetClient &) = delete;
-    virtual NetClient &operator=(const NetClient &) = delete;
+    NetClient &operator=(const NetClient &) = delete;
     NetClient(NetClient &&) = delete;
-    virtual NetClient &operator=(NetClient &&) = delete;
+    NetClient &operator=(NetClient &&) = delete;
     /**
      * @brief Establishes network/TLS connection to the KMIP server.
      *        Must honor @ref m_timeout_ms for connect + handshake phases.
