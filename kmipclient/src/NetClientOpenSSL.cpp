@@ -80,6 +80,9 @@ namespace kmipclient {
   static bool is_timeout_socket_error(int err) {
     return err == WSAETIMEDOUT || err == WSAEWOULDBLOCK;
   }
+  static bool is_interrupted_socket_error(int err) {
+    return err == WSAEINTR;
+  }
 #else
   static int last_socket_error() {
     return errno;
@@ -92,6 +95,9 @@ namespace kmipclient {
   }
   static bool is_timeout_socket_error(int err) {
     return err == EAGAIN || err == EWOULDBLOCK || err == ETIMEDOUT;
+  }
+  static bool is_interrupted_socket_error(int err) {
+    return err == EINTR;
   }
 #endif
 
@@ -569,15 +575,24 @@ namespace kmipclient {
       return -1;
     }
     const int dlen = static_cast<int>(data.size());
-    clear_socket_error();
-    const int ret = BIO_write(bio_.get(), data.data(), dlen);
-    if (ret <= 0 && BIO_should_retry(bio_.get()) &&
-        is_timeout_socket_error(last_socket_error())) {
-      throw KmipIOException(
-          kmipcore::KMIP_IO_FAILURE, timeoutMessage("send", m_timeout_ms)
-      );
+    for (;;) {
+      clear_socket_error();
+      const int ret = BIO_write(bio_.get(), data.data(), dlen);
+      if (ret > 0 || !BIO_should_retry(bio_.get())) {
+        return ret;
+      }
+      const int err = last_socket_error();
+      if (is_timeout_socket_error(err)) {
+        throw KmipIOException(
+            kmipcore::KMIP_IO_FAILURE, timeoutMessage("send", m_timeout_ms)
+        );
+      }
+      // Interrupted by a signal (EINTR). SO_SNDTIMEO makes the socket write
+      // non-restartable regardless of SA_RESTART, so retry it ourselves.
+      if (!is_interrupted_socket_error(err)) {
+        return ret;
+      }
     }
-    return ret;
   }
 
   int NetClientOpenSSL::recv(std::span<std::uint8_t> data) {
@@ -585,15 +600,24 @@ namespace kmipclient {
       return -1;
     }
     const int dlen = static_cast<int>(data.size());
-    clear_socket_error();
-    const int ret = BIO_read(bio_.get(), data.data(), dlen);
-    if (ret <= 0 && BIO_should_retry(bio_.get()) &&
-        is_timeout_socket_error(last_socket_error())) {
-      throw KmipIOException(
-          kmipcore::KMIP_IO_FAILURE, timeoutMessage("receive", m_timeout_ms)
-      );
+    for (;;) {
+      clear_socket_error();
+      const int ret = BIO_read(bio_.get(), data.data(), dlen);
+      if (ret > 0 || !BIO_should_retry(bio_.get())) {
+        return ret;
+      }
+      const int err = last_socket_error();
+      if (is_timeout_socket_error(err)) {
+        throw KmipIOException(
+            kmipcore::KMIP_IO_FAILURE, timeoutMessage("receive", m_timeout_ms)
+        );
+      }
+      // Interrupted by a signal (EINTR). SO_RCVTIMEO makes the socket read
+      // non-restartable regardless of SA_RESTART, so retry it ourselves.
+      if (!is_interrupted_socket_error(err)) {
+        return ret;
+      }
     }
-    return ret;
   }
 
 }  // namespace kmipclient
