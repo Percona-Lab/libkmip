@@ -14,13 +14,7 @@
 namespace kmipcore {
 
   /** @brief Key object families represented by @ref Key. */
-  enum class KeyType {
-    UNSET,
-    SYMMETRIC_KEY,
-    PUBLIC_KEY,
-    PRIVATE_KEY,
-    CERTIFICATE
-  };
+  enum class KeyType { SYMMETRIC_KEY, PUBLIC_KEY, PRIVATE_KEY, CERTIFICATE };
 
   /**
    * Minimal crypto key representation as KMIP spec sees it.
@@ -46,9 +40,6 @@ namespace kmipcore {
     )
       : ManagedObject(value, std::move(attrs)), key_type(k_type) {}
 
-    /** @brief Constructs an empty key object. */
-    Key() = default;
-
     Key(const Key &) = default;
     Key &operator=(const Key &) = default;
     Key(Key &&) noexcept = default;
@@ -61,7 +52,7 @@ namespace kmipcore {
     [[nodiscard]] size_t size() const noexcept { return value_.size(); }
 
   private:
-    KeyType key_type = KeyType::UNSET;
+    KeyType key_type;
   };
 
 }  // namespace kmipcore
