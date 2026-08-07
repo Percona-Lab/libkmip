@@ -110,18 +110,20 @@ namespace kmipcore {
     buffer_.reserve(new_capacity);
   }
 
-  std::vector<uint8_t> SerializationBuffer::release() {
-    // Copy only the serialized bytes into the result.
+  secure_bytes SerializationBuffer::release() {
+    // Copy only the serialized bytes into the result (secure_bytes, so both the
+    // copy and this buffer scrub their storage when freed).
     // Use iterators instead of buffer_.data() + offset to avoid pointer
     // arithmetic on a potentially-null data() when size()==0 (UB even for +0).
-    std::vector<uint8_t> result(
+    secure_bytes result(
         buffer_.begin(),
         buffer_.begin() + static_cast<std::ptrdiff_t>(current_offset_)
     );
 
-    // Reset write position and logical size but KEEP the reserved capacity so
-    // the buffer can be reused immediately without a new heap allocation.
-    // Callers that need to reclaim memory explicitly can call shrink().
+    // clear() keeps the reserved capacity for reuse, so it would otherwise
+    // leave the just-serialized secret bytes lingering in that capacity.
+    // Scrub the live bytes explicitly before clearing (F12).
+    secure_clear(buffer_.data(), buffer_.size());
     buffer_.clear();  // size -> 0, capacity unchanged
     current_offset_ = 0;
 
@@ -130,8 +132,9 @@ namespace kmipcore {
 
   void SerializationBuffer::shrink() {
     // Aggressively release all heap memory (capacity included).
-    // Use the swap-with-empty idiom because shrink_to_fit() is advisory.
-    std::vector<uint8_t>().swap(buffer_);
+    // Use the swap-with-empty idiom because shrink_to_fit() is advisory; the
+    // freed storage is scrubbed by secure_allocator::deallocate.
+    secure_bytes().swap(buffer_);
     current_offset_ = 0;
   }
 

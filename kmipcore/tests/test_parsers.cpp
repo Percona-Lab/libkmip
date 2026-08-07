@@ -40,7 +40,7 @@ namespace {
 
 }  // namespace
 
-std::vector<uint8_t> create_mock_response_bytes_with_result(
+secure_bytes create_mock_response_bytes_with_result(
     int32_t operation,
     std::shared_ptr<Element> payload,
     int32_t result_status,
@@ -49,7 +49,7 @@ std::vector<uint8_t> create_mock_response_bytes_with_result(
 );
 
 // Helper to create a basic success response message with one item
-std::vector<uint8_t> create_mock_response_bytes(
+secure_bytes create_mock_response_bytes(
     int32_t operation, std::shared_ptr<Element> payload
 ) {
   return create_mock_response_bytes_with_result(
@@ -61,7 +61,7 @@ std::vector<uint8_t> create_mock_response_bytes(
   );
 }
 
-std::vector<uint8_t> create_mock_response_bytes_with_result(
+secure_bytes create_mock_response_bytes_with_result(
     int32_t operation,
     std::shared_ptr<Element> payload,
     int32_t result_status,
@@ -115,7 +115,7 @@ void test_response_parser_failure_preserves_reason_code() {
 
 // Helper: build a response where the Operation tag is intentionally omitted
 // (simulates the pyKMIP behaviour of omitting Operation in failure responses).
-std::vector<uint8_t> create_mock_response_bytes_no_operation(
+secure_bytes create_mock_response_bytes_no_operation(
     int32_t result_status,
     std::optional<int32_t> result_reason,
     const std::optional<std::string> &result_message,

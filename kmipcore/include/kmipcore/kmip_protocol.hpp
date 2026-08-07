@@ -10,9 +10,11 @@
 
 #include "kmipcore/kmip_basics.hpp"
 #include "kmipcore/kmip_enums.hpp"
+#include "kmipcore/secure_memory.hpp"
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -120,13 +122,19 @@ namespace kmipcore {
     void setUserName(const std::optional<std::string> &userName) {
       userName_ = userName;
     }
-    /** @brief Returns optional authentication password. */
-    [[nodiscard]] const std::optional<std::string> &getPassword() const {
+    /**
+     * @brief Returns optional authentication password (scrubbed storage).
+     */
+    [[nodiscard]] const std::optional<secure_string> &getPassword() const {
       return password_;
     }
     /** @brief Sets optional authentication password. */
-    void setPassword(const std::optional<std::string> &password) {
-      password_ = password;
+    void setPassword(std::optional<std::string_view> password) {
+      if (password) {
+        password_.emplace(password->begin(), password->end());
+      } else {
+        password_.reset();
+      }
     }
     /** @brief Encodes header to TTLV element form. */
     [[nodiscard]] std::shared_ptr<Element> toElement() const;
@@ -140,7 +148,7 @@ namespace kmipcore {
     std::optional<int64_t> timeStamp_;
     std::optional<bool> batchOrderOption_;
     std::optional<std::string> userName_;
-    std::optional<std::string> password_;
+    std::optional<secure_string> password_;
   };
 
   /** @brief One KMIP operation entry within a request batch. */
@@ -321,7 +329,7 @@ namespace kmipcore {
     [[nodiscard]] size_t getMaxResponseSize() const;
 
     /** @brief Serializes complete message to TTLV bytes. */
-    [[nodiscard]] std::vector<uint8_t> serialize() const;
+    [[nodiscard]] secure_bytes serialize() const;
 
     /** @brief Encodes request message to TTLV element tree. */
     [[nodiscard]] std::shared_ptr<Element> toElement() const;

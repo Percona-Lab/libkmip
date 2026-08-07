@@ -141,7 +141,7 @@ namespace kmipcore {
     static const char *operationToString(int32_t operation);
     static const char *resultStatusToString(int32_t status);
 
-    std::vector<uint8_t> responseBytes_;
+    secure_bytes responseBytes_;
     ResponseMessage responseMessage_{};
     bool isParsed_ = false;
     /** Maps uniqueBatchItemId → operation code extracted from the request. */

@@ -379,9 +379,9 @@ namespace kmipcore {
     );
   }
   std::shared_ptr<Element>
-      Element::createTextString(Tag t, const std::string &v) {
+      Element::createTextString(Tag t, std::string_view v) {
     return std::make_shared<Element>(
-        t, static_cast<Type>(KMIP_TYPE_TEXT_STRING), TextString{v}
+        t, static_cast<Type>(KMIP_TYPE_TEXT_STRING), TextString{std::string{v}}
     );
   }
   std::shared_ptr<Element>

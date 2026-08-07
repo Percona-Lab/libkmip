@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <memory>
+#include <span>
 
 using namespace kmipclient;
 
@@ -31,7 +32,7 @@ namespace {
     }
   };
 
-  void print_hex(const std::vector<unsigned char> &key) {
+  void print_hex(std::span<const unsigned char> key) {
     for (auto const &c : key) {
       std::cout << std::hex << static_cast<int>(c);
     }

@@ -9,7 +9,9 @@
 #define KMIPCORE_MANAGED_OBJECT_HPP
 
 #include "kmipcore/kmip_attributes.hpp"
+#include "kmipcore/secure_memory.hpp"
 
+#include <span>
 #include <vector>
 
 namespace kmipcore {
@@ -32,9 +34,9 @@ namespace kmipcore {
      * @param attrs Type-safe attribute bag.
      */
     explicit ManagedObject(
-        const std::vector<unsigned char> &value, Attributes attrs = {}
+        std::span<const unsigned char> value, Attributes attrs = {}
     )
-      : value_(value), attributes_(std::move(attrs)) {}
+      : value_(value.begin(), value.end()), attributes_(std::move(attrs)) {}
 
     /** @brief Virtual destructor for subclass-safe cleanup. */
     virtual ~ManagedObject() = default;
@@ -46,14 +48,12 @@ namespace kmipcore {
 
     // ---- Raw bytes ----
 
-    /** @brief Returns raw object payload bytes. */
-    [[nodiscard]] const std::vector<unsigned char> &value() const noexcept {
-      return value_;
-    }
+    /** @brief Returns raw object payload bytes (stored in scrubbed memory). */
+    [[nodiscard]] const secure_bytes &value() const noexcept { return value_; }
 
     /** @brief Replaces raw object payload bytes. */
-    void set_value(const std::vector<unsigned char> &val) noexcept {
-      value_ = val;
+    void set_value(std::span<const unsigned char> val) {
+      value_.assign(val.begin(), val.end());
     }
 
     // ---- Attribute bag ----
@@ -85,7 +85,7 @@ namespace kmipcore {
     }
 
   protected:
-    std::vector<unsigned char> value_;
+    secure_bytes value_;
     Attributes attributes_;
   };
 

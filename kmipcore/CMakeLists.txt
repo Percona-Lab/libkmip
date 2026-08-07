@@ -35,3 +35,7 @@ add_test(NAME kmip_parser_test COMMAND kmip_parser_test)
 add_executable(kmip_serialization_buffer_test tests/test_serialization_buffer.cpp)
 target_link_libraries(kmip_serialization_buffer_test PRIVATE kmipcore)
 add_test(NAME kmip_serialization_buffer_test COMMAND kmip_serialization_buffer_test)
+
+add_executable(kmip_secure_memory_test tests/test_secure_memory.cpp)
+target_link_libraries(kmip_secure_memory_test PRIVATE kmipcore)
+add_test(NAME kmip_secure_memory_test COMMAND kmip_secure_memory_test)

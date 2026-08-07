@@ -52,7 +52,7 @@ namespace kmipclient {
     }
   }
 
-  void IOUtils::send(const std::vector<uint8_t> &request_bytes) const {
+  void IOUtils::send(std::span<const uint8_t> request_bytes) const {
     const int dlen = static_cast<int>(request_bytes.size());
     if (dlen <= 0) {
       throw KmipIOException(
@@ -63,8 +63,7 @@ namespace kmipclient {
     int total_sent = 0;
     while (total_sent < dlen) {
       const int sent = net_client.send(
-          std::span<const uint8_t>(request_bytes)
-              .subspan(static_cast<size_t>(total_sent))
+          request_bytes.subspan(static_cast<size_t>(total_sent))
       );
       if (sent <= 0) {
         std::ostringstream oss;
@@ -92,7 +91,7 @@ namespace kmipclient {
     }
   }
 
-  std::vector<uint8_t> IOUtils::receive_message(size_t max_message_size) {
+  kmipcore::secure_bytes IOUtils::receive_message(size_t max_message_size) {
     std::array<uint8_t, KMIP_MSG_LENGTH_BYTES> msg_len_buf{};
 
     read_exact(msg_len_buf);
@@ -107,7 +106,7 @@ namespace kmipclient {
       throw KmipIOException(kmipcore::KMIP_EXCEED_MAX_MESSAGE_SIZE, oss.str());
     }
 
-    std::vector<uint8_t> response(
+    kmipcore::secure_bytes response(
         KMIP_MSG_LENGTH_BYTES + static_cast<size_t>(length)
     );
     memcpy(response.data(), msg_len_buf.data(), KMIP_MSG_LENGTH_BYTES);
@@ -122,8 +121,8 @@ namespace kmipclient {
   }
 
   void IOUtils::do_exchange(
-      const std::vector<uint8_t> &request_bytes,
-      std::vector<uint8_t> &response_bytes,
+      std::span<const uint8_t> request_bytes,
+      kmipcore::secure_bytes &response_bytes,
       size_t max_message_size
   ) {
     try {

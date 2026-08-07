@@ -156,7 +156,7 @@ namespace kmipcore {
       return template_attribute;
     }
     std::shared_ptr<Element>
-        make_key_value(const std::vector<unsigned char> &bytes) {
+        make_key_value(std::span<const unsigned char> bytes) {
       auto key_value = Element::createStructure(tag::KMIP_TAG_KEY_VALUE);
       key_value->asStructure()->add(
           Element::createByteString(
@@ -168,7 +168,7 @@ namespace kmipcore {
     }
     std::shared_ptr<Element> make_key_block(
         int32_t key_format_type,
-        const std::vector<unsigned char> &bytes,
+        std::span<const unsigned char> bytes,
         std::optional<int32_t> algorithm,
         std::optional<int32_t> cryptographic_length
     ) {
@@ -258,7 +258,7 @@ namespace kmipcore {
       }
     }
     std::shared_ptr<Element>
-        make_symmetric_key(const std::vector<unsigned char> &key_value) {
+        make_symmetric_key(std::span<const unsigned char> key_value) {
       auto symmetric_key =
           Element::createStructure(tag::KMIP_TAG_SYMMETRIC_KEY);
       symmetric_key->asStructure()->add(make_key_block(
@@ -270,7 +270,7 @@ namespace kmipcore {
       return symmetric_key;
     }
     std::shared_ptr<Element> make_secret_data(
-        const std::vector<unsigned char> &secret, secret_data_type secret_type
+        std::span<const unsigned char> secret, secret_data_type secret_type
     ) {
       auto secret_data = Element::createStructure(tag::KMIP_TAG_SECRET_DATA);
       secret_data->asStructure()->add(
@@ -555,7 +555,7 @@ namespace kmipcore {
   RegisterSymmetricKeyRequest::RegisterSymmetricKeyRequest(
       const std::string &name,
       const std::string &group,
-      const std::vector<unsigned char> &key_value,
+      std::span<const unsigned char> key_value,
       ProtocolVersion version
   ) {
     setOperation(KMIP_OP_REGISTER);
@@ -699,7 +699,7 @@ namespace kmipcore {
   RegisterSecretRequest::RegisterSecretRequest(
       const std::string &name,
       const std::string &group,
-      const std::vector<unsigned char> &secret,
+      std::span<const unsigned char> secret,
       secret_data_type secret_type,
       ProtocolVersion version
   ) {

@@ -11,9 +11,9 @@
 /** @brief kmipcore semantic version major component. */
 #define KMIPCORE_VERSION_MAJOR 0
 /** @brief kmipcore semantic version minor component. */
-#define KMIPCORE_VERSION_MINOR 1
+#define KMIPCORE_VERSION_MINOR 2
 /** @brief kmipcore semantic version patch component. */
-#define KMIPCORE_VERSION_PATCH 2
+#define KMIPCORE_VERSION_PATCH 0
 
 /** @brief Internal helper for macro stringification. */
 #define KMIPCORE_STRINGIFY_I(x) #x
